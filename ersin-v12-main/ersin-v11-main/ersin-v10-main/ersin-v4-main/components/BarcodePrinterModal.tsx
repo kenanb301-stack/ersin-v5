@@ -175,7 +175,6 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
               .lbl-header { flex: 0 0 auto; min-height: 8mm; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; margin-bottom: 1mm; padding-bottom: 1mm; }
               .lbl-center { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 12mm; }
               .lbl-footer { flex: 0 0 auto; border-top: 1px solid #000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 1mm; }
-              .lbl-sub { font-size: 8px; font-weight: bold; margin-top: 1px; }
               img { max-width: 100%; filter: contrast(2); }
           }
         `}</style>
@@ -286,10 +285,6 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
                     </div>
                     <div className="lbl-footer">
                         <div className="font-bold text-center text-xs">{item.product.product_name}</div>
-                        {item.product.material && (
-                            <div className="lbl-sub tracking-tighter uppercase">{item.product.material}</div>
-                        )}
-                        <div className="text-[7px] font-mono mt-0.5">ID: {item.product.short_id}</div>
                     </div>
                 </div>
              </div>
