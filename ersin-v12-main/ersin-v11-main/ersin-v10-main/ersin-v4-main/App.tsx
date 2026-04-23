@@ -165,7 +165,11 @@ function App() {
     const code = params.get('code');
 
     if (action === 'scan') {
-      setIsGlobalScannerOpen(true);
+      // Delay scanner to ensure environment is ready especially on startup
+      const timer = setTimeout(() => {
+        setIsGlobalScannerOpen(true);
+      }, 500);
+      return () => clearTimeout(timer);
     } else if (code) {
       const product = products.find(p => 
         String(p.short_id) === code.trim() || 

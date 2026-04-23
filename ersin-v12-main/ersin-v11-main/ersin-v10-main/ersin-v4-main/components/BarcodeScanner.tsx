@@ -156,11 +156,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScanSuccess, onClose 
             console.error("Scanner Start Error:", err);
             
             // Retry logic for "Camera in use" errors
-            if (retryCount < 2 && (err.message?.includes("busy") || err.message?.includes("starting") || err.name === 'NotAllowedError')) {
+            if (retryCount < 4 && (err.message?.includes("busy") || err.message?.includes("starting") || err.message?.includes("NotReadableError") || err.name === 'NotAllowedError')) {
                 setTimeout(() => {
                     isProcessing.current = false;
                     startScanner(retryCount + 1);
-                }, 500);
+                }, 800);
             } else {
                 if (isMounted.current) {
                     setError("Kamera başlatılamadı. İzinleri kontrol edip tekrar deneyin.");
@@ -230,12 +230,12 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScanSuccess, onClose 
                 </div>
             )}
 
-            <div className="flex gap-3">
-                <button onClick={() => window.location.reload()} className="px-5 py-2 bg-blue-600 rounded-lg font-bold flex items-center gap-2">
-                    <RefreshCw size={18}/> Yenile
+            <div className="flex flex-col gap-3">
+                <button onClick={() => window.location.reload()} className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all">
+                    <RefreshCw size={18}/> Sayfayı Yenile
                 </button>
-                <button onClick={onClose} className="px-5 py-2 bg-slate-700 rounded-lg font-bold">
-                    Kapat
+                <button onClick={onClose} className="px-5 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center justify-center transition-all">
+                    İptal Et
                 </button>
             </div>
         </div>
