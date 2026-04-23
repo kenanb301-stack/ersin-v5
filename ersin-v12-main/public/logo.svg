@@ -1,24 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Arkaplan Dolgulu Kare -->
-  <rect width="512" height="512" rx="100" fill="#2563eb" />
-  
-  <!-- İzometrik Kutu -->
-  <path d="M256 100 L120 180 V332 L256 412 L392 332 V180 Z" 
-        fill="none" 
-        stroke="#ffffff" 
-        stroke-width="30" 
-        stroke-linejoin="round" />
-  
-  <path d="M256 100 V256 M256 256 L120 180 M256 256 L392 180" 
-        fill="none" 
-        stroke="#ffffff" 
-        stroke-width="30" 
-        stroke-linecap="round" 
-        stroke-linejoin="round" />
-        
-  <path d="M200 175 L280 220 M232 155 L312 200" 
-        fill="none" 
-        stroke="#ffffff" 
-        stroke-width="22" 
-        stroke-linecap="round" />
+  <defs>
+    <linearGradient id="topGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="sideGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <path d="M256 60 L440 160 L256 260 L72 160 Z" fill="url(#topGrad)" />
+  <path d="M256 260 L440 160 V350 L256 450 Z" fill="#1e40af" />
+  <path d="M256 260 L72 160 V350 L256 450 Z" fill="url(#sideGrad)" />
+  <path d="M256 260 V450" stroke="#1d4ed8" stroke-width="4" stroke-opacity="0.3" />
+  <path d="M180 120 L300 185" stroke="#ffffff" stroke-width="25" stroke-linecap="round" stroke-opacity="0.3" />
+  <path d="M210 100 L330 165" stroke="#ffffff" stroke-width="25" stroke-linecap="round" stroke-opacity="0.3" />
 </svg>
