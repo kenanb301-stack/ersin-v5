@@ -615,8 +615,31 @@ function App() {
           isOpen={isProductModalOpen} onClose={() => { setIsProductModalOpen(false); setEditingProduct(null); }}
           products={products} productToEdit={editingProduct}
           onSubmit={(data) => {
-              if (editingProduct) saveData(products.map(p => p.id === editingProduct.id ? { ...p, ...data } : p), transactions, orders);
-              else saveData([...products, { ...data, id: `p-${generateId()}`, short_id: generateShortId(), created_at: new Date().toISOString() }], transactions, orders);
+              if (editingProduct) {
+                  saveData(products.map(p => p.id === editingProduct.id ? { ...p, ...data } : p), transactions, orders);
+              } else {
+                  const newId = `p-${generateId()}`;
+                  const now = new Date().toISOString();
+                  const newProduct: Product = { ...data, id: newId, short_id: generateShortId(), created_at: now };
+                  
+                  let upTx = [...transactions];
+                  if (data.current_stock > 0) {
+                      const initialTx: Transaction = {
+                          id: `t-${generateId()}`,
+                          product_id: newId,
+                          product_name: data.product_name,
+                          type: TransactionType.IN,
+                          quantity: data.current_stock,
+                          date: now,
+                          description: 'SİSTEM AÇILIŞ STOĞU',
+                          created_by: currentUser.name,
+                          previous_stock: 0,
+                          new_stock: data.current_stock
+                      };
+                      upTx = [initialTx, ...transactions];
+                  }
+                  saveData([...products, newProduct], upTx, orders);
+              }
           }}
       />
       <ProductDetailModal isOpen={isProductDetailOpen} onClose={() => setIsProductDetailOpen(false)} products={products} transactions={transactions} initialProductId={detailProductId || undefined} />
