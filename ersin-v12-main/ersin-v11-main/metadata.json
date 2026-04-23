@@ -1,0 +1,9 @@
+
+{
+  "name": "Omaks Depo",
+  "description": "A high-performance multimodal studio featuring real-time voice interaction, advanced image generation, and visual reasoning powered by Gemini.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

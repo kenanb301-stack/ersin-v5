@@ -1,0 +1,27 @@
+
+{
+  "name": "omaks-depo",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "lucide-react": "0.344.0",
+    "xlsx": "0.18.5",
+    "html5-qrcode": "2.3.8",
+    "jsbarcode": "3.11.6",
+    "@supabase/supabase-js": "2.39.7",
+    "@google/genai": "1.34.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.2.0",
+    "typescript": "^5.2.2"
+  }
+}

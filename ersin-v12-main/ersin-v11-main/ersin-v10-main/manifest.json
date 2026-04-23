@@ -1,0 +1,27 @@
+{
+  "short_name": "Omaks Depo",
+  "name": "Omaks Depo Stok Takip",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#2563eb",
+  "background_color": "#f8fafc",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Barkod Tara",
+      "short_name": "Tara",
+      "description": "Hızlıca ürün barkodu okut",
+      "url": "/?action=scan",
+      "icons": [{ "src": "/logo.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+    }
+  ]
+}
