@@ -160,16 +160,14 @@ function App() {
 
   // URL Action Handler (Barcode Scan from Shortcut)
   useEffect(() => {
-    if (!currentUser) return;
     const params = new URLSearchParams(window.location.search);
     const action = params.get('action');
     if (action === 'scan') {
       setIsGlobalScannerOpen(true);
-      // URL'deki parametreyi temizleyelim ki sayfa yenilendiğinde tekrar açılmasın
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, '', newUrl);
+      // Clean URL immediately
+      window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [currentUser]);
+  }, []);
 
   const saveData = useCallback(async (newProducts: Product[], newTransactions: Transaction[], newOrders?: Order[], silent: boolean = false) => {
       setProducts(newProducts);
@@ -333,7 +331,27 @@ function App() {
     { id: 'HISTORY', label: 'Geçmiş', icon: Clock },
   ];
 
-  if (!currentUser) return <Login onLogin={handleLogin} />;
+  if (!currentUser) return (
+    <div className="h-screen w-full">
+      <Login onLogin={handleLogin} onQuickScan={() => setIsGlobalScannerOpen(true)} />
+      {isGlobalScannerOpen && (
+          <BarcodeScanner 
+            onScanSuccess={(code) => {
+                setIsGlobalScannerOpen(false);
+                const product = products.find(p => String(p.short_id) === code.trim() || p.barcode === code.trim() || p.part_code === code.trim());
+                if (product) {
+                    setDetailProductId(product.id);
+                    setIsProductDetailOpen(true);
+                } else {
+                    alert(`Ürün bulunamadı: ${code}`);
+                }
+            }}
+            onClose={() => setIsGlobalScannerOpen(false)}
+          />
+      )}
+      {isProductDetailOpen && <ProductDetailModal isOpen={isProductDetailOpen} onClose={() => setIsProductDetailOpen(false)} products={products} transactions={transactions} initialProductId={detailProductId || undefined} />}
+    </div>
+  );
 
   const MinimalSettingsBar = () => (
     <div className="flex items-center justify-around gap-1 w-full bg-slate-100 dark:bg-slate-900/60 p-2 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-inner">

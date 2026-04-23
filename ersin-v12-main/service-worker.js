@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'depopro-v2.0';
+const CACHE_NAME = 'depopro-v2.1';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
