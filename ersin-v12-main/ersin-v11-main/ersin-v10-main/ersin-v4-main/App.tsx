@@ -156,6 +156,10 @@ function App() {
         }
       } catch (e) { console.error("Auto setup failed", e); }
     }
+    const action = params.get('action');
+    if (action === 'scan') {
+      setIsGlobalScannerOpen(true);
+    }
   }, []);
 
   const saveData = useCallback(async (newProducts: Product[], newTransactions: Transaction[], newOrders?: Order[], silent: boolean = false) => {

@@ -14,5 +14,14 @@
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Barkod Oku",
+      "short_name": "Oku",
+      "description": "Hızlı barkod tarayıcıyı aç",
+      "url": "/?action=scan",
+      "icons": [{ "src": "/logo.svg", "sizes": "any" }]
+    }
   ]
 }
