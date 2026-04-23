@@ -20,9 +20,9 @@ interface PrintSettings {
     showPartCode: boolean;
     showLocation: boolean;
     showProductName: boolean;
-    posPartCode: 'TOP_LEFT' | 'TOP_RIGHT' | 'BOTTOM';
-    posLocation: 'TOP_LEFT' | 'TOP_RIGHT' | 'BOTTOM';
-    posProductName: 'TOP_LEFT' | 'TOP_RIGHT' | 'BOTTOM';
+    posPartCode: 'TOP_LEFT' | 'TOP_CENTER' | 'TOP_RIGHT' | 'BOTTOM';
+    posLocation: 'TOP_LEFT' | 'TOP_CENTER' | 'TOP_RIGHT' | 'BOTTOM';
+    posProductName: 'TOP_LEFT' | 'TOP_CENTER' | 'TOP_RIGHT' | 'BOTTOM';
     fontSizePartCode: number;
     fontSizeLocation: number;
     fontSizeProductName: number;
@@ -190,10 +190,10 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
                 transform-origin: top left; 
                 color: #000 !important;
               }
-              .lbl-header { flex: 0 0 auto; min-height: 8mm; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; margin-bottom: 1mm; padding-bottom: 1mm; }
+              .lbl-header { flex: 0 0 auto; min-height: 8mm; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; margin-bottom: 1mm; padding-bottom: 1mm; gap: 1mm; }
               .lbl-center { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 12mm; }
               .lbl-footer { flex: 0 0 auto; border-top: 1px solid #000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 1mm; }
-              .lbl-item-top { max-width: 50%; overflow: hidden; }
+              .lbl-item-top { flex: 1; min-width: 0; overflow: hidden; }
               .lbl-item-bottom { width: 100%; text-align: center; }
               img { max-width: 100%; filter: contrast(2); }
           }
@@ -273,6 +273,7 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
                                           </div>
                                           <select value={printSettings.posPartCode} onChange={e => setPrintSettings({...printSettings, posPartCode: e.target.value as any})} className="text-[10px] p-1 border rounded bg-white dark:bg-slate-700">
                                               <option value="TOP_LEFT">Üst Sol</option>
+                                              <option value="TOP_CENTER">Üst Orta</option>
                                               <option value="TOP_RIGHT">Üst Sağ</option>
                                               <option value="BOTTOM">Alt Orta</option>
                                           </select>
@@ -292,6 +293,7 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
                                           </div>
                                           <select value={printSettings.posLocation} onChange={e => setPrintSettings({...printSettings, posLocation: e.target.value as any})} className="text-[10px] p-1 border rounded bg-white dark:bg-slate-700">
                                               <option value="TOP_LEFT">Üst Sol</option>
+                                              <option value="TOP_CENTER">Üst Orta</option>
                                               <option value="TOP_RIGHT">Üst Sağ</option>
                                               <option value="BOTTOM">Alt Orta</option>
                                           </select>
@@ -311,6 +313,7 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
                                           </div>
                                           <select value={printSettings.posProductName} onChange={e => setPrintSettings({...printSettings, posProductName: e.target.value as any})} className="text-[10px] p-1 border rounded bg-white dark:bg-slate-700">
                                               <option value="TOP_LEFT">Üst Sol</option>
+                                              <option value="TOP_CENTER">Üst Orta</option>
                                               <option value="TOP_RIGHT">Üst Sağ</option>
                                               <option value="BOTTOM">Alt Orta</option>
                                           </select>
@@ -361,6 +364,11 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
                             {printSettings.showPartCode && printSettings.posPartCode === 'TOP_LEFT' && <div className="font-black truncate" style={{ fontSize: `${printSettings.fontSizePartCode}px` }}>{item.product.part_code}</div>}
                             {printSettings.showLocation && printSettings.posLocation === 'TOP_LEFT' && <div className="border-2 border-black px-1 rounded-sm font-bold truncate" style={{ fontSize: `${printSettings.fontSizeLocation}px` }}>{item.product.location}</div>}
                             {printSettings.showProductName && printSettings.posProductName === 'TOP_LEFT' && <div className="font-bold truncate" style={{ fontSize: `${printSettings.fontSizeProductName}px` }}>{item.product.product_name}</div>}
+                        </div>
+                        <div className="lbl-item-top" style={{ textAlign: 'center' }}>
+                            {printSettings.showPartCode && printSettings.posPartCode === 'TOP_CENTER' && <div className="font-black truncate" style={{ fontSize: `${printSettings.fontSizePartCode}px` }}>{item.product.part_code}</div>}
+                            {printSettings.showLocation && printSettings.posLocation === 'TOP_CENTER' && <div className="border-2 border-black px-1 rounded-sm font-bold truncate" style={{ fontSize: `${printSettings.fontSizeLocation}px` }}>{item.product.location}</div>}
+                            {printSettings.showProductName && printSettings.posProductName === 'TOP_CENTER' && <div className="font-bold truncate" style={{ fontSize: `${printSettings.fontSizeProductName}px` }}>{item.product.product_name}</div>}
                         </div>
                         <div className="lbl-item-top" style={{ textAlign: 'right' }}>
                             {printSettings.showPartCode && printSettings.posPartCode === 'TOP_RIGHT' && <div className="font-black truncate" style={{ fontSize: `${printSettings.fontSizePartCode}px` }}>{item.product.part_code}</div>}
