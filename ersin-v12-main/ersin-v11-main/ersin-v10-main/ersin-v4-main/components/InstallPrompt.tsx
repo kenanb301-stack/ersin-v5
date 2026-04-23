@@ -63,7 +63,7 @@ const InstallPrompt = () => {
         <div className="flex items-center gap-4 w-full">
             {/* LOGO DISPLAY */}
             <div className="w-14 h-14 bg-blue-600 rounded-xl shadow-lg shadow-blue-600/20 flex items-center justify-center flex-shrink-0">
-                <img src="logo.svg" alt="Omaks Logo" className="w-10 h-10 object-contain" />
+                <img src="logo.svg?v=2" alt="Omaks Logo" className="w-10 h-10 object-contain" />
             </div>
 
             <div className="flex-1 min-w-0 text-left">
