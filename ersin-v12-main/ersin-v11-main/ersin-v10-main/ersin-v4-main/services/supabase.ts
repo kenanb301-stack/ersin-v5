@@ -195,19 +195,32 @@ export const registerDevice = async (url: string, key: string, deviceId: string,
         const client = initSupabase(url, key);
         if (!client) return { success: false };
         
-        const { error } = await client.from('authorized_devices').upsert({ 
-            device_id: deviceId, 
-            device_name: deviceName,
-            is_authorized: false 
-        }, { onConflict: 'device_id' });
-        
-        if (error) {
-            console.error("Cihaz Kayıt Hatası:", error);
-            throw error;
+        // Önce cihaz var mı kontrol et
+        const { data: existing } = await client
+            .from('authorized_devices')
+            .select('is_authorized')
+            .eq('device_id', deviceId)
+            .single();
+
+        if (existing) {
+            // Cihaz zaten varsa, sadece ismini ve zamanını güncelle (YETKİYE DOKUNMA)
+            await client.from('authorized_devices').update({ 
+                device_name: deviceName,
+                updated_at: new Date().toISOString()
+            }).eq('device_id', deviceId);
+        } else {
+            // Yeni cihaz ise, yetkisiz olarak ekle
+            const { error } = await client.from('authorized_devices').insert({ 
+                device_id: deviceId, 
+                device_name: deviceName,
+                is_authorized: false 
+            });
+            if (error) throw error;
         }
+        
         return { success: true };
     } catch (e: any) { 
-        console.error("Cihaz Kayıt Catch Hatası:", e);
+        console.error("Cihaz Kayıt Hatası:", e);
         return { success: false }; 
     }
 };

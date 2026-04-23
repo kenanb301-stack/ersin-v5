@@ -17,6 +17,7 @@ import AutoExportModal from './components/AutoExportModal';
 import InstallPrompt from './components/InstallPrompt'; 
 import BarcodePrinterModal from './components/BarcodePrinterModal';
 import SecuritySettingsModal from './components/SecuritySettingsModal';
+import BulkImportModal from './components/BulkImportModal';
 import { saveToSupabase, loadFromSupabase } from './services/supabase';
 import { generateAndDownloadExcel } from './utils/excelExport'; 
 import { INITIAL_PRODUCTS, INITIAL_TRANSACTIONS } from './constants';
@@ -128,6 +129,7 @@ function App() {
   const [isGlobalScannerOpen, setIsGlobalScannerOpen] = useState(false);
   const [isAutoExportModalOpen, setIsAutoExportModalOpen] = useState(false); 
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // URL Setup Handler
@@ -195,6 +197,93 @@ function App() {
       setCurrentUser(null); 
       sessionStorage.removeItem('depopro_user_session');
       localStorage.removeItem('depopro_remembered_user');
+  };
+
+  const handleBulkImport = (data: any[]) => {
+    const now = new Date().toISOString();
+    let updatedProducts = [...products];
+    let newTransactions: Transaction[] = [];
+
+    data.forEach(item => {
+        // Find existing product by ID, Part Code, or Barcode
+        const existingIdx = updatedProducts.findIndex(p => 
+            (item.part_code && p.part_code === String(item.part_code)) || 
+            (item.barcode && p.barcode === String(item.barcode))
+        );
+
+        const incomingStock = Number(item.current_stock) || 0;
+
+        if (existingIdx > -1) {
+            const existing = updatedProducts[existingIdx];
+            const stockDiff = incomingStock - existing.current_stock;
+            
+            // Only update if there's data to change
+            updatedProducts[existingIdx] = {
+                ...existing,
+                current_stock: incomingStock,
+                brand: item.brand || existing.brand,
+                category: item.category || existing.category,
+                location: item.location || existing.location,
+                unit: item.unit || existing.unit,
+                min_stock: item.min_stock !== undefined ? Number(item.min_stock) : existing.min_stock,
+                purchase_price: item.purchase_price !== undefined ? Number(item.purchase_price) : existing.purchase_price,
+                sale_price: item.sale_price !== undefined ? Number(item.sale_price) : existing.sale_price,
+            };
+
+            if (stockDiff !== 0) {
+                newTransactions.push({
+                    id: `t-${generateId()}`,
+                    product_id: existing.id,
+                    product_name: existing.product_name,
+                    type: TransactionType.CORRECTION,
+                    quantity: Math.abs(stockDiff),
+                    date: now,
+                    description: `EXCEL AKTARIM: ${stockDiff > 0 ? '+' : ''}${stockDiff}`,
+                    created_by: currentUser?.name || 'Sistem',
+                    previous_stock: existing.current_stock,
+                    new_stock: incomingStock
+                });
+            }
+        } else {
+            // New Product
+            const newId = `p-${generateId()}`;
+            const newProduct: Product = {
+                id: newId,
+                short_id: generateShortId(),
+                product_name: item.product_name,
+                part_code: item.part_code ? String(item.part_code) : '',
+                barcode: item.barcode ? String(item.barcode) : '',
+                brand: item.brand || '',
+                category: item.category || 'Diğer',
+                current_stock: incomingStock,
+                min_stock: Number(item.min_stock) || 0,
+                unit: item.unit || 'Adet',
+                location: item.location || '',
+                purchase_price: Number(item.purchase_price) || 0,
+                sale_price: Number(item.sale_price) || 0,
+                created_at: now
+            };
+            updatedProducts.push(newProduct);
+
+            if (incomingStock !== 0) {
+                newTransactions.push({
+                    id: `t-${generateId()}`,
+                    product_id: newId,
+                    product_name: newProduct.product_name,
+                    type: TransactionType.IN,
+                    quantity: incomingStock,
+                    date: now,
+                    description: 'EXCEL İLE YENİ ÜRÜN',
+                    created_by: currentUser?.name || 'Sistem',
+                    previous_stock: 0,
+                    new_stock: incomingStock
+                });
+            }
+        }
+    });
+
+    saveData(updatedProducts, [...newTransactions, ...transactions], orders);
+    alert(`${data.length} satır işlendi. Veriler güncellendi.`);
   };
 
   const navItems = [
@@ -306,7 +395,7 @@ function App() {
                         products={products} transactions={transactions} currentUser={currentUser}
                         onQuickAction={(type) => { setModalType(type); setIsModalOpen(true); }}
                         onProductClick={() => setCurrentView('INVENTORY')}
-                        onBulkTransaction={() => setIsBulkModalOpen(true)}
+                        onBulkTransaction={() => setIsBulkImportOpen(true)}
                         onViewNegativeStock={() => setCurrentView('NEGATIVE_STOCK')}
                         onOrderManager={() => setIsOrderManagerOpen(true)}
                         onScan={() => setIsGlobalScannerOpen(true)}
@@ -328,7 +417,7 @@ function App() {
                         onEdit={(p) => { setEditingProduct(p); setIsProductModalOpen(true); }}
                         onProductClick={(p) => { setDetailProductId(p.id); setIsProductDetailOpen(true); }}
                         onAddProduct={() => { setEditingProduct(null); setIsProductModalOpen(true); }}
-                        onBulkAdd={() => { setBulkModalMode('PRODUCT'); setIsBulkModalOpen(true); }}
+                        onBulkAdd={() => setIsBulkImportOpen(true)}
                         onPrintBarcodes={() => setIsBarcodePrinterOpen(true)}
                     />
                 )}
@@ -438,6 +527,7 @@ function App() {
         }} />
       <OrderManagerModal isOpen={isOrderManagerOpen} onClose={() => setIsOrderManagerOpen(false)} products={products} orders={orders} onSaveOrder={(newOrder) => saveData(products, transactions, [...orders, newOrder])} onDeleteOrder={(id) => saveData(products, transactions, orders.filter(o => o.id !== id))} onUpdateOrderStatus={(id, s) => saveData(products, transactions, orders.map(o => o.id === id ? {...o, status: s} : o))} onUpdateOrderProgress={(id, picked) => saveData(products, transactions, orders.map(o => o.id === id ? {...o, picked_items: picked} : o), true)} currentUser={currentUser} />
       <SecuritySettingsModal isOpen={isSecurityModalOpen} onClose={() => setIsSecurityModalOpen(false)} cloudConfig={cloudConfig} />
+      <BulkImportModal isOpen={isBulkImportOpen} onClose={() => setIsBulkImportOpen(false)} onImport={handleBulkImport} existingProducts={products} />
       <InstallPrompt />
     </div>
   );

@@ -35,11 +35,15 @@ const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({ isOpen, o
   };
 
   const handleToggleAuth = async (deviceId: string, currentAuth: boolean) => {
-    if (!cloudConfig) return;
+    if (!cloudConfig || isLoading) return;
+    setIsLoading(true);
     const res = await updateDeviceAuthorization(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, deviceId, !currentAuth);
     if (res.success) {
-      fetchDevices();
+      await fetchDevices();
+      setMessage({ type: 'success', text: `Cihaz yetkisi ${!currentAuth ? 'verildi' : 'kaldırıldı'}.` });
+      setTimeout(() => setMessage(null), 3000);
     }
+    setIsLoading(false);
   };
 
   const handleChangePassword = async () => {
