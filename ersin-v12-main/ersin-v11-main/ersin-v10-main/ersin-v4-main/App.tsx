@@ -91,30 +91,6 @@ function App() {
     return saved === null ? true : saved === 'true';
   });
 
-  // SECURITY: Periodic Device Authorization Check
-  useEffect(() => {
-    if (!currentUser || !cloudConfig) return;
-
-    const checkAuthStatus = async () => {
-        const deviceId = getDeviceId();
-        const res = await checkDeviceAuthorization(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, deviceId);
-        
-        // If device was previously authorized but now is not (or not found), force logout
-        if (res.success && !res.authorized) {
-            console.warn("Cihaz yetkisi iptal edildi. Oturum kapatılıyor...");
-            handleLogout();
-            alert("⚠️ Bu cihazın yetkisi iptal edildiği için oturum kapatıldı.");
-        }
-    };
-
-    // Check immediately on mount/login
-    checkAuthStatus();
-
-    // Then check every 2 minutes
-    const interval = setInterval(checkAuthStatus, 120000);
-    return () => clearInterval(interval);
-  }, [currentUser, cloudConfig]);
-
   useEffect(() => {
     const root = document.documentElement;
     if (isDarkMode) {

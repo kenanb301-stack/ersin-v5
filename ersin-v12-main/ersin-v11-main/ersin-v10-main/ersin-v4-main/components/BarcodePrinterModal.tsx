@@ -140,7 +140,7 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
                 background: white !important; 
               }
               body * { visibility: hidden; }
-              #print-area, #print-area * { visibility: visible !important; }
+               #print-area, #print-area * { visibility: visible !important; color: #000 !important; border-color: #000 !important; }
               #print-area { 
                 display: block !important; 
                 position: absolute !important; 
@@ -170,11 +170,13 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
                 padding: ${printSettings.paddingY}mm ${printSettings.paddingX}mm; 
                 transform: scale(${printSettings.scale / 100}); 
                 transform-origin: top left; 
+                color: #000 !important;
               }
-              .lbl-header { flex: 0 0 auto; height: 8mm; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid black; margin-bottom: 1mm; }
-              .lbl-center { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 15mm; }
-              .lbl-footer { flex: 0 0 auto; height: 8mm; border-top: 1px solid #000; display: flex; align-items: center; justify-content: center; padding-top: 1mm; }
-              img { max-width: 100%; }
+              .lbl-header { flex: 0 0 auto; min-height: 8mm; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; margin-bottom: 1mm; padding-bottom: 1mm; }
+              .lbl-center { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 12mm; }
+              .lbl-footer { flex: 0 0 auto; border-top: 1px solid #000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 1mm; }
+              .lbl-sub { font-size: 8px; font-weight: bold; margin-top: 1px; }
+              img { max-width: 100%; filter: contrast(2); }
           }
         `}</style>
 
@@ -284,6 +286,10 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
                     </div>
                     <div className="lbl-footer">
                         <div className="font-bold text-center text-xs">{item.product.product_name}</div>
+                        {item.product.material && (
+                            <div className="lbl-sub tracking-tighter uppercase">{item.product.material}</div>
+                        )}
+                        <div className="text-[7px] font-mono mt-0.5">ID: {item.product.short_id}</div>
                     </div>
                 </div>
              </div>
