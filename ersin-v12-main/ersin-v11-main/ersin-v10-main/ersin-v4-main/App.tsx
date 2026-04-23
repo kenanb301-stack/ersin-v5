@@ -156,11 +156,20 @@ function App() {
         }
       } catch (e) { console.error("Auto setup failed", e); }
     }
+  }, []);
+
+  // URL Action Handler (Barcode Scan from Shortcut)
+  useEffect(() => {
+    if (!currentUser) return;
+    const params = new URLSearchParams(window.location.search);
     const action = params.get('action');
     if (action === 'scan') {
       setIsGlobalScannerOpen(true);
+      // URL'deki parametreyi temizleyelim ki sayfa yenilendiğinde tekrar açılmasın
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
     }
-  }, []);
+  }, [currentUser]);
 
   const saveData = useCallback(async (newProducts: Product[], newTransactions: Transaction[], newOrders?: Order[], silent: boolean = false) => {
       setProducts(newProducts);

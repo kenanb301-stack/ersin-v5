@@ -32,8 +32,14 @@
       "name": "Barkod Oku",
       "short_name": "Oku",
       "description": "Hızlı barkod tarayıcıyı aç",
-      "url": "index.html?action=scan",
-      "icons": [{ "src": "logo.svg", "sizes": "any" }]
+      "url": "./?action=scan",
+      "icons": [
+        {
+          "src": "logo.svg",
+          "sizes": "192x192",
+          "type": "image/svg+xml"
+        }
+      ]
     }
   ]
 }
