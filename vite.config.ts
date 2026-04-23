@@ -11,6 +11,10 @@ export default defineConfig(({ mode }) => {
     return {
       root: 'ersin-v12-main',
       plugins: [react()],
+      build: {
+        outDir: '../dist',
+        emptyOutDir: true,
+      },
       server: {
         port: 3000,
         host: '0.0.0.0',
