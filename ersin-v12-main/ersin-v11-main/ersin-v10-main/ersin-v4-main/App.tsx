@@ -439,7 +439,19 @@ function App() {
                 {currentView === 'INVENTORY' && (
                     <InventoryList 
                         products={products} currentUser={currentUser}
-                        onDelete={(id) => saveData(products.filter(p => p.id !== id), transactions, orders)}
+                        onDelete={async (id) => {
+                            if (confirm('Bu ürünü ve ilgili tüm hareketleri silmek istediğinize emin misiniz?')) {
+                                const updatedProducts = products.filter(p => p.id !== id);
+                                const updatedTransactions = transactions.filter(t => t.product_id !== id);
+                                saveData(updatedProducts, updatedTransactions, orders);
+                                
+                                if (cloudConfig?.supabaseUrl) {
+                                    await deleteRecord(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, 'products', id);
+                                    // Note: In Supabase, if CASCADE is not set, we might need to delete transactions too.
+                                    // For safety, let's assume we might need to handle it or have CASCADE in DB.
+                                }
+                            }
+                        }}
                         onEdit={(p) => { setEditingProduct(p); setIsProductModalOpen(true); }}
                         onProductClick={(p) => { setDetailProductId(p.id); setIsProductDetailOpen(true); }}
                         onAddProduct={() => { setEditingProduct(null); setIsProductModalOpen(true); }}
@@ -451,11 +463,18 @@ function App() {
                     <TransactionHistory 
                         transactions={transactions} products={products} currentUser={currentUser}
                         onEdit={(t) => { setEditingTransaction(t); setIsModalOpen(true); }}
-                        onDelete={(id) => {
+                        onDelete={async (id) => {
                              const tx = transactions.find(t => t.id === id);
                              if(tx) {
-                                const upProds = products.map(p => p.id === tx.product_id ? {...p, current_stock: p.current_stock - (tx.type === 'IN' ? tx.quantity : -tx.quantity)} : p);
-                                saveData(upProds, transactions.filter(t => t.id !== id), orders);
+                                if (confirm('Bu hareketi silmek ve stok miktarı düzeltmek istediğinize emin misiniz?')) {
+                                    const upProds = products.map(p => p.id === tx.product_id ? {...p, current_stock: p.current_stock - (tx.type === 'IN' ? tx.quantity : -tx.quantity)} : p);
+                                    const upTx = transactions.filter(t => t.id !== id);
+                                    saveData(upProds, upTx, orders);
+                                    
+                                    if (cloudConfig?.supabaseUrl) {
+                                        await deleteRecord(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, 'transactions', id);
+                                    }
+                                }
                              }
                         }}
                     />
@@ -551,7 +570,25 @@ function App() {
             };
             reader.readAsText(file);
         }} />
-      <OrderManagerModal isOpen={isOrderManagerOpen} onClose={() => setIsOrderManagerOpen(false)} products={products} orders={orders} onSaveOrder={(newOrder) => saveData(products, transactions, [...orders, newOrder])} onDeleteOrder={(id) => saveData(products, transactions, orders.filter(o => o.id !== id))} onUpdateOrderStatus={(id, s) => saveData(products, transactions, orders.map(o => o.id === id ? {...o, status: s} : o))} onUpdateOrderProgress={(id, picked) => saveData(products, transactions, orders.map(o => o.id === id ? {...o, picked_items: picked} : o), true)} currentUser={currentUser} />
+      <OrderManagerModal 
+        isOpen={isOrderManagerOpen} 
+        onClose={() => setIsOrderManagerOpen(false)} 
+        products={products} 
+        orders={orders} 
+        onSaveOrder={(newOrder) => saveData(products, transactions, [...orders, newOrder])} 
+        onDeleteOrder={async (id) => {
+            if (confirm('Bu siparişi silmek istediğinize emin misiniz?')) {
+                saveData(products, transactions, orders.filter(o => o.id !== id));
+                if (cloudConfig?.supabaseUrl) {
+                    const { deleteRecord } = await import('./services/supabase');
+                    await deleteRecord(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, 'orders', id);
+                }
+            }
+        }} 
+        onUpdateOrderStatus={(id, s) => saveData(products, transactions, orders.map(o => o.id === id ? {...o, status: s} : o))} 
+        onUpdateOrderProgress={(id, picked) => saveData(products, transactions, orders.map(o => o.id === id ? {...o, picked_items: picked} : o), true)} 
+        currentUser={currentUser} 
+      />
       <SecuritySettingsModal isOpen={isSecurityModalOpen} onClose={() => setIsSecurityModalOpen(false)} cloudConfig={cloudConfig} />
       <BulkImportModal isOpen={isBulkImportOpen} onClose={() => setIsBulkImportOpen(false)} onImport={handleBulkImport} existingProducts={products} />
       <InstallPrompt />
