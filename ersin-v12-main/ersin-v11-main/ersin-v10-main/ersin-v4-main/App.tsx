@@ -18,7 +18,7 @@ import InstallPrompt from './components/InstallPrompt';
 import BarcodePrinterModal from './components/BarcodePrinterModal';
 import SecuritySettingsModal from './components/SecuritySettingsModal';
 import BulkImportModal from './components/BulkImportModal';
-import { saveToSupabase, loadFromSupabase, checkDeviceAuthorization } from './services/supabase';
+import { saveToSupabase, loadFromSupabase, checkDeviceAuthorization, deleteRecord } from './services/supabase';
 import { getDeviceId } from './utils/device';
 import { generateAndDownloadExcel } from './utils/excelExport'; 
 import { INITIAL_PRODUCTS, INITIAL_TRANSACTIONS } from './constants';
@@ -580,7 +580,6 @@ function App() {
             if (confirm('Bu siparişi silmek istediğinize emin misiniz?')) {
                 saveData(products, transactions, orders.filter(o => o.id !== id));
                 if (cloudConfig?.supabaseUrl) {
-                    const { deleteRecord } = await import('./services/supabase');
                     await deleteRecord(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, 'orders', id);
                 }
             }
