@@ -382,7 +382,10 @@ function App() {
           <div className="md:hidden fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm animate-fade-in" onClick={() => setIsMobileSidebarOpen(false)}>
               <div className="w-72 h-full bg-white dark:bg-slate-900 shadow-2xl flex flex-col p-6 animate-slide-in-left" onClick={e => e.stopPropagation()}>
                   <div className="flex justify-between items-center mb-8">
-                      <h2 className="font-bold text-blue-600 flex items-center gap-2"><Package size={24}/> Omaks Depo</h2>
+                      <h2 className="font-bold text-blue-600 flex items-center gap-2">
+                        <img src="/logo.svg?v=4" className="w-8 h-8 object-contain" alt="Logo" />
+                        Omaks Depo
+                      </h2>
                       <button onClick={() => setIsMobileSidebarOpen(false)} className="p-1 text-slate-400"><X/></button>
                   </div>
                   <div className="flex-1"><MinimalSettingsBar /></div>
@@ -394,7 +397,10 @@ function App() {
       {/* --- DESKTOP SIDEBAR --- */}
       <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-full z-40 transition-colors">
           <div className="p-6 border-b border-slate-100 dark:border-slate-800">
-            <h1 className="text-xl font-bold text-blue-600 flex items-center gap-2"><Package size={26} /><span className="dark:text-white text-slate-800">Omaks Depo</span></h1>
+            <h1 className="text-xl font-bold text-blue-600 flex items-center gap-2">
+                <img src="/logo.svg?v=4" className="w-10 h-10 object-contain" alt="Logo" />
+                <span className="dark:text-white text-slate-800">Omaks Depo</span>
+            </h1>
             <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-black">v{APP_VERSION}</p>
         </div>
         <nav className="flex-1 p-4 space-y-2">
@@ -422,7 +428,10 @@ function App() {
       {/* --- MOBILE HEADER --- */}
       <div className="md:hidden fixed top-0 w-full z-[55] bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex justify-between items-center shadow-sm">
           <button onClick={() => setIsMobileSidebarOpen(true)} className="p-2 -ml-2 text-slate-600 dark:text-slate-300"><Menu size={26} /></button>
-          <div className="flex items-center gap-2"><Package className="text-blue-600" size={24} /><h1 className="text-lg font-bold dark:text-white">Omaks Depo</h1></div>
+          <div className="flex items-center gap-2">
+            <img src="/logo.svg?v=4" className="w-8 h-8 object-contain" alt="Logo" />
+            <h1 className="text-lg font-bold dark:text-white">Omaks Depo</h1>
+          </div>
           <button onClick={handleCloudSync} disabled={isSyncing} className={`p-2 rounded-lg transition-all ${isSyncing ? 'text-blue-500' : 'text-emerald-500'}`}><RefreshCw size={22} className={isSyncing ? 'animate-spin' : ''} /></button>
       </div>
 

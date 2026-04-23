@@ -121,8 +121,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           
           <div className="relative z-10 w-full h-full flex flex-col justify-between p-16 text-white">
               <div className="flex items-center gap-3">
-                   <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm">
-                        <Package size={28} className="text-white" />
+                   <div className="bg-white p-1 rounded-xl shadow-lg">
+                        <img src="/logo.svg?v=4" className="w-10 h-10 object-contain" alt="Logo" />
                    </div>
                    <span className="text-2xl font-bold tracking-tight">Omaks Depo</span>
               </div>
@@ -148,8 +148,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="w-full max-w-md animate-fade-in-up">
             
             <div className="lg:hidden text-center mb-8">
-                 <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-lg shadow-blue-200 dark:shadow-blue-900/20 mb-4 transform rotate-3">
-                    <Package className="text-white" size={32} />
+                 <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-2xl shadow-xl mb-4 p-2">
+                    <img src="/logo.svg?v=4" className="w-full h-full object-contain" alt="Logo" />
                  </div>
                  <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Omaks Depo</h2>
             </div>

@@ -9,13 +9,13 @@
   "scope": "/",
   "icons": [
     {
-      "src": "/logo.svg",
+      "src": "/logo.svg?v=4",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/logo.svg",
+      "src": "/logo.svg?v=4",
       "sizes": "512x512",
       "type": "image/svg+xml"
     }
@@ -24,10 +24,10 @@
     {
       "name": "Barkod Oku",
       "short_name": "Oku",
-      "url": "/?action=scan",
+      "url": "/index.html?action=scan",
       "icons": [
         {
-          "src": "/logo.svg",
+          "src": "/logo.svg?v=4",
           "sizes": "192x192",
           "type": "image/svg+xml"
         }

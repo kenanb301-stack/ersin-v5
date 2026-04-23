@@ -1,32 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="topGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="sideGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
+    <linearGradient id="bg_grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4B89FF" />
+      <stop offset="100%" stop-color="#0046D5" />
     </linearGradient>
   </defs>
-  
-  <!-- Arkaplan (Opsiyonel: Bazı sistemlerde ikonun görünürlüğünü garanti eder) -->
-  <!-- <rect width="512" height="512" rx="120" fill="#ffffff" /> -->
-
-  <!-- İzometrik Kutu Gövdesi -->
-  <!-- Üst Kapak -->
-  <path d="M256 60 L440 160 L256 260 L72 160 Z" fill="url(#topGrad)" />
-  
-  <!-- Sağ Yan Yüz -->
-  <path d="M256 260 L440 160 V350 L256 450 Z" fill="#1e40af" />
-  
-  <!-- Sol Yan Yüz -->
-  <path d="M256 260 L72 160 V350 L256 450 Z" fill="url(#sideGrad)" />
-  
-  <!-- Kutu Detay Çizgileri (Açıklık hissi için) -->
-  <path d="M256 260 V450" stroke="#1d4ed8" stroke-width="4" stroke-opacity="0.3" />
-  
-  <!-- Stilize Paket Bandı veya İşaret -->
-  <path d="M180 120 L300 185" stroke="#ffffff" stroke-width="25" stroke-linecap="round" stroke-opacity="0.3" />
-  <path d="M210 100 L330 165" stroke="#ffffff" stroke-width="25" stroke-linecap="round" stroke-opacity="0.3" />
+  <rect width="512" height="512" rx="128" fill="url(#bg_grad)" />
+  <g fill="none" stroke="white" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M256 120 L410 205 V340 L256 425 L102 340 V205 Z" />
+    <path d="M102 205 L256 290 L410 205" />
+    <path d="M256 290 V425" />
+    <path d="M305 152 L175 225" stroke-width="20" stroke-opacity="0.9" />
+    <path d="M345 175 L215 248" stroke-width="20" stroke-opacity="0.9" />
+  </g>
 </svg>
