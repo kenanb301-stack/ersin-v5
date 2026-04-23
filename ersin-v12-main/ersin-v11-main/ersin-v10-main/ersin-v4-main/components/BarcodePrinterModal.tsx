@@ -17,6 +17,14 @@ interface PrintSettings {
     labelHeight: number; 
     scale: number;
     gap: number;
+    fontSizeHeader: number;
+    fontSizeFooter: number;
+    fontWeightHeader: string;
+    fontWeightFooter: string;
+    showPartCode: boolean;
+    showLocation: boolean;
+    showDescription: boolean;
+    fieldOrder: string[]; 
 }
 
 const DEFAULT_PRINT_SETTINGS: PrintSettings = {
@@ -26,7 +34,15 @@ const DEFAULT_PRINT_SETTINGS: PrintSettings = {
     paddingY: 2,
     labelHeight: 40,
     scale: 100,
-    gap: 0
+    gap: 0,
+    fontSizeHeader: 16,
+    fontSizeFooter: 10,
+    fontWeightHeader: 'font-black',
+    fontWeightFooter: 'font-bold',
+    showPartCode: true,
+    showLocation: true,
+    showDescription: true,
+    fieldOrder: ['header', 'center', 'footer']
 };
 
 const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClose, products }) => {
@@ -38,7 +54,7 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
   const [showSettings, setShowSettings] = useState(false);
 
   const [printSettings, setPrintSettings] = useState<PrintSettings>(() => {
-      const saved = localStorage.getItem('print_align_settings');
+      const saved = localStorage.getItem('print_align_settings_v5');
       return saved ? { ...DEFAULT_PRINT_SETTINGS, ...JSON.parse(saved) } : DEFAULT_PRINT_SETTINGS;
   });
 
@@ -103,8 +119,18 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
   };
 
   const saveAlignSettings = () => {
-      localStorage.setItem('print_align_settings', JSON.stringify(printSettings));
+      localStorage.setItem('print_align_settings_v5', JSON.stringify(printSettings));
       alert("Ayarlar kaydedildi.");
+  };
+
+  const moveField = (index: number, direction: 'up' | 'down') => {
+      const newOrder = [...printSettings.fieldOrder];
+      if (direction === 'up' && index > 0) {
+          [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
+      } else if (direction === 'down' && index < newOrder.length - 1) {
+          [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+      }
+      setPrintSettings({ ...printSettings, fieldOrder: newOrder });
   };
 
   const printItems = useMemo(() => {
@@ -171,9 +197,32 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
                 transform: scale(${printSettings.scale / 100}); 
                 transform-origin: top left; 
               }
-              .lbl-header { flex: 0 0 auto; height: 8mm; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid black; margin-bottom: 1mm; }
-              .lbl-center { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 15mm; }
-              .lbl-footer { flex: 0 0 auto; height: 8mm; border-top: 1px solid #000; display: flex; align-items: center; justify-content: center; padding-top: 1mm; }
+              .lbl-header { 
+                flex: 0 0 auto; 
+                display: ${printSettings.showPartCode || printSettings.showLocation ? 'flex' : 'none'}; 
+                justify-content: space-between; 
+                align-items: flex-start; 
+                border-bottom: 1px solid black; 
+                margin-bottom: 1mm; 
+              }
+              .lbl-center { 
+                flex: 1; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                overflow: hidden; 
+                min-height: 10mm; 
+              }
+              .lbl-footer { 
+                flex: 0 0 auto; 
+                display: ${printSettings.showDescription ? 'flex' : 'none'}; 
+                border-top: 1px solid #000; 
+                align-items: center; 
+                justify-content: center; 
+                padding-top: 1mm; 
+              }
+              .text-header { font-size: ${printSettings.fontSizeHeader}px; }
+              .text-footer { font-size: ${printSettings.fontSizeFooter}px; }
               img { max-width: 100%; }
           }
         `}</style>
@@ -230,15 +279,72 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
 
               <div className="flex-1 bg-slate-100 dark:bg-slate-950 p-6 flex flex-col">
                   {showSettings ? (
-                      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border dark:border-slate-800 max-w-lg mx-auto w-full space-y-6 animate-fade-in">
-                          <h3 className="font-bold flex items-center gap-2"><Ruler size={18} className="text-blue-500"/> Hizalama Ayarları</h3>
-                          <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border dark:border-slate-800 max-w-2xl mx-auto w-full space-y-6 animate-fade-in overflow-y-auto max-h-full">
+                          <h3 className="font-bold flex items-center gap-2"><Ruler size={18} className="text-blue-500"/> Gelişmiş Etiket Ayarları</h3>
+                          
+                          <div className="grid grid-cols-2 gap-4 border-b pb-6 dark:border-slate-800">
                               <div className="space-y-1"><label className="text-xs font-bold text-slate-400">Üst Kenar (mm)</label><input type="number" step="0.5" value={printSettings.marginTop} onChange={e => setPrintSettings({...printSettings, marginTop: Number(e.target.value)})} className="w-full p-2 border rounded-lg dark:bg-slate-800"/></div>
                               <div className="space-y-1"><label className="text-xs font-bold text-slate-400">Sol Kenar (mm)</label><input type="number" step="0.5" value={printSettings.marginLeft} onChange={e => setPrintSettings({...printSettings, marginLeft: Number(e.target.value)})} className="w-full p-2 border rounded-lg dark:bg-slate-800"/></div>
                               <div className="space-y-1"><label className="text-xs font-bold text-slate-400">Etiket Yükseklik (mm)</label><input type="number" value={printSettings.labelHeight} onChange={e => setPrintSettings({...printSettings, labelHeight: Number(e.target.value)})} className="w-full p-2 border rounded-lg dark:bg-slate-800"/></div>
                               <div className="space-y-1"><label className="text-xs font-bold text-slate-400">Ölçek (%)</label><input type="number" value={printSettings.scale} onChange={e => setPrintSettings({...printSettings, scale: Number(e.target.value)})} className="w-full p-2 border rounded-lg dark:bg-slate-800"/></div>
                           </div>
-                          <button onClick={saveAlignSettings} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200">Ayarları Kaydet</button>
+
+                          <div className="space-y-4">
+                              <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Alan Sıralaması ve Görünürlük</h4>
+                              <div className="space-y-2">
+                                  {printSettings.fieldOrder.map((field, idx) => (
+                                      <div key={field} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border dark:border-slate-800">
+                                          <div className="flex flex-col gap-1">
+                                              <button onClick={() => moveField(idx, 'up')} disabled={idx === 0} className="p-1 hover:text-blue-600 disabled:opacity-30"><Plus size={14}/></button>
+                                              <button onClick={() => moveField(idx, 'down')} disabled={idx === printSettings.fieldOrder.length - 1} className="p-1 hover:text-blue-600 disabled:opacity-30"><Minus size={14}/></button>
+                                          </div>
+                                          <div className="flex-1 font-bold text-sm capitalize">
+                                              {field === 'header' ? 'Üst Alan (P.Kodu / Reyon)' : field === 'center' ? 'Orta Alan (Barkod)' : 'Alt Alan (Ürün Adı)'}
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                              {field === 'header' && (
+                                                  <div className="flex gap-2">
+                                                      <button onClick={() => setPrintSettings({...printSettings, showPartCode: !printSettings.showPartCode})} className={`px-2 py-1 rounded text-[10px] ${printSettings.showPartCode ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'}`}>P.Kodu</button>
+                                                      <button onClick={() => setPrintSettings({...printSettings, showLocation: !printSettings.showLocation})} className={`px-2 py-1 rounded text-[10px] ${printSettings.showLocation ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'}`}>Reyon</button>
+                                                  </div>
+                                              )}
+                                              {field === 'footer' && (
+                                                  <button onClick={() => setPrintSettings({...printSettings, showDescription: !printSettings.showDescription})} className={`px-2 py-1 rounded text-[10px] ${printSettings.showDescription ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'}`}>Ürün Adı</button>
+                                              )}
+                                          </div>
+                                      </div>
+                                  ))}
+                              </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-6">
+                              <div className="space-y-3">
+                                  <h4 className="text-[10px] font-bold text-slate-400 uppercase">Üst Alan Metin Ayarları</h4>
+                                  <div className="flex items-center gap-2 text-xs">
+                                      <span>Boyut:</span>
+                                      <input type="number" value={printSettings.fontSizeHeader} onChange={e => setPrintSettings({...printSettings, fontSizeHeader: Number(e.target.value)})} className="w-16 p-1 border rounded" />
+                                  </div>
+                                  <div className="flex gap-2">
+                                      {['font-normal', 'font-bold', 'font-black'].map(w => (
+                                          <button key={w} onClick={() => setPrintSettings({...printSettings, fontWeightHeader: w})} className={`px-2 py-1 rounded text-[10px] ${printSettings.fontWeightHeader === w ? 'bg-slate-800 text-white' : 'bg-slate-100'}`}>{w === 'font-normal' ? 'İnce' : w === 'font-bold' ? 'Kalın' : 'Ekstra'}</button>
+                                      ))}
+                                  </div>
+                              </div>
+                              <div className="space-y-3">
+                                  <h4 className="text-[10px] font-bold text-slate-400 uppercase">Alt Alan Metin Ayarları</h4>
+                                  <div className="flex items-center gap-2 text-xs">
+                                      <span>Boyut:</span>
+                                      <input type="number" value={printSettings.fontSizeFooter} onChange={e => setPrintSettings({...printSettings, fontSizeFooter: Number(e.target.value)})} className="w-16 p-1 border rounded" />
+                                  </div>
+                                  <div className="flex gap-2">
+                                      {['font-normal', 'font-bold', 'font-black'].map(w => (
+                                          <button key={w} onClick={() => setPrintSettings({...printSettings, fontWeightFooter: w})} className={`px-2 py-1 rounded text-[10px] ${printSettings.fontWeightFooter === w ? 'bg-slate-800 text-white' : 'bg-slate-100'}`}>{w === 'font-normal' ? 'İnce' : w === 'font-bold' ? 'Kalın' : 'Ekstra'}</button>
+                                      ))}
+                                  </div>
+                              </div>
+                          </div>
+
+                          <button onClick={saveAlignSettings} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200">Ayarları Kalıcı Olarak Kaydet</button>
                       </div>
                   ) : (
                       <div className="flex-1 flex flex-col items-center justify-center space-y-8 animate-fade-in">
@@ -271,20 +377,41 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
          {printItems.map((item, i) => (
              <div key={`${item.product.id}-${item.index}`} className="label-container">
                 <div className="label-content-wrapper">
-                    <div className="lbl-header">
-                        <div className="font-black text-lg">{item.product.part_code}</div>
-                        <div className="border-2 border-black px-1 rounded-sm font-bold text-xs">{item.product.location}</div>
-                    </div>
-                    <div className="lbl-center">
-                        {barcodeImages[item.product.id] ? (
-                           <img src={barcodeImages[item.product.id]} className="max-w-full max-h-full" alt="barcode" />
-                        ) : (
-                           <div className="text-[8px] text-slate-300">Barkod hazırlanıyor...</div>
-                        )}
-                    </div>
-                    <div className="lbl-footer">
-                        <div className="font-bold text-center text-xs">{item.product.product_name}</div>
-                    </div>
+                    {printSettings.fieldOrder.map(section => {
+                        if (section === 'header') {
+                            return (
+                                <div key="header" className="lbl-header" style={{ order: printSettings.fieldOrder.indexOf('header') }}>
+                                    {printSettings.showPartCode && (
+                                        <div className={`${printSettings.fontWeightHeader} text-header`}>{item.product.part_code}</div>
+                                    )}
+                                    {printSettings.showLocation && (
+                                        <div className={`border-2 border-black px-1 rounded-sm font-bold text-xs`}>{item.product.location}</div>
+                                    )}
+                                </div>
+                            );
+                        }
+                        if (section === 'center') {
+                            return (
+                                <div key="center" className="lbl-center" style={{ order: printSettings.fieldOrder.indexOf('center') }}>
+                                    {barcodeImages[item.product.id] ? (
+                                       <img src={barcodeImages[item.product.id]} className="max-w-full max-h-full" alt="barcode" />
+                                    ) : (
+                                       <div className="text-[8px] text-slate-300">Barkod hazırlanıyor...</div>
+                                    )}
+                                </div>
+                            );
+                        }
+                        if (section === 'footer') {
+                            return (
+                                <div key="footer" className="lbl-footer" style={{ order: printSettings.fieldOrder.indexOf('footer') }}>
+                                    {printSettings.showDescription && (
+                                        <div className={`${printSettings.fontWeightFooter} text-center text-footer`}>{item.product.product_name}</div>
+                                    )}
+                                </div>
+                            );
+                        }
+                        return null;
+                    })}
                 </div>
              </div>
          ))}
