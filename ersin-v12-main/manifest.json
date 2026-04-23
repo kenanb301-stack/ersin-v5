@@ -1,0 +1,37 @@
+{
+  "short_name": "Omaks Depo",
+  "name": "Omaks Depo Stok Takip",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#2563eb",
+  "background_color": "#f8fafc",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Barkod Oku",
+      "short_name": "Oku",
+      "url": "/?action=scan",
+      "icons": [
+        {
+          "src": "/logo.svg",
+          "sizes": "192x192",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ]
+}
