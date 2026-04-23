@@ -158,16 +158,32 @@ function App() {
     }
   }, []);
 
-  // URL Action Handler (Barcode Scan from Shortcut)
+  // URL Action/Code Handler
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const action = params.get('action');
+    const code = params.get('code');
+
     if (action === 'scan') {
       setIsGlobalScannerOpen(true);
-      // Clean URL immediately
+    } else if (code) {
+      const product = products.find(p => 
+        String(p.short_id) === code.trim() || 
+        p.barcode === code.trim() || 
+        p.part_code === code.trim()
+      );
+      if (product) {
+        setDetailProductId(product.id);
+        setIsProductDetailOpen(true);
+      } else {
+        alert(`Kod okundu fakat ürün bulunamadı: ${code}`);
+      }
+    }
+
+    if (action || code) {
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, []);
+  }, [products]);
 
   const saveData = useCallback(async (newProducts: Product[], newTransactions: Transaction[], newOrders?: Order[], silent: boolean = false) => {
       setProducts(newProducts);

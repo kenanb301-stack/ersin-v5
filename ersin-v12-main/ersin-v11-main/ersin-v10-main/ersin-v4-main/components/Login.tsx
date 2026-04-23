@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Package, ShieldCheck, Eye, ArrowRight, AlertTriangle, Lock, Cloud, Wifi, WifiOff, CheckCircle, ScanLine } from 'lucide-react';
+import { Package, ShieldCheck, Eye, ArrowRight, AlertTriangle, Lock, Cloud, Wifi, WifiOff, CheckCircle, ScanLine, Zap } from 'lucide-react';
 import { User as UserType } from '../types';
 import { verifyCredentials } from '../utils/security';
 import { loadAppSettings, registerDevice } from '../services/supabase';
@@ -162,13 +162,33 @@ const Login: React.FC<LoginProps> = ({ onLogin, onQuickScan }) => {
                     <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">Devam etmek için giriş yöntemini seçin.</p>
                     
                     {onQuickScan && (
-                        <button 
-                            onClick={onQuickScan}
-                            className="w-full py-4 mb-2 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white rounded-2xl font-bold flex items-center justify-center gap-3 transition-all active:scale-[0.98] border border-slate-700/50 shadow-lg"
-                        >
-                            <ScanLine size={24} className="text-blue-400" />
-                            Hızlı Barkod Sorgula
-                        </button>
+                        <div className="space-y-3">
+                            <button 
+                                onClick={onQuickScan}
+                                className="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-lg shadow-blue-200 dark:shadow-none"
+                            >
+                                <ScanLine size={28} />
+                                <div className="text-left">
+                                    <div className="text-lg leading-none">Barkod Tara</div>
+                                    <div className="text-[10px] opacity-80 font-normal uppercase tracking-wider mt-1 italic">Hızlı Sorgulama Modu</div>
+                                </div>
+                            </button>
+                            
+                            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-800 text-[12px] text-amber-800 dark:text-amber-300 text-left space-y-3">
+                                <div className="flex items-center gap-2 font-bold mb-1">
+                                    <Zap size={16} className="text-amber-500" />
+                                    <span>KİLİT EKRANINI ATLAYIN (HIZLI ERİŞİM)</span>
+                                </div>
+                                
+                                <div className="space-y-2 opacity-90">
+                                    <p><strong>Yöntem 1 (Kestirme Simgesi):</strong> Kısayol sürüklenmiyorsa; tarayıcıdan <span className="underline italic">.../?action=scan</span> adresini açın ve tarayıcı menüsünden "Ana Ekrana Ekle" deyin. Giriş yapmadan anında kamera açan yeni bir ikonunuz olur.</p>
+                                    
+                                    <div className="h-[1px] bg-amber-200/50 dark:bg-amber-800/50"></div>
+                                    
+                                    <p><strong>Yöntem 2 (Güç Tuşu):</strong> Telefon Ayarları &gt; Yan Tuş (Güç Tuşu) menüsünden "İki kez basınca uygulamayı aç" ayarını aktif edip bu uygulamayı seçin. Fener açar gibi kameraya ulaşırsınız.</p>
+                                </div>
+                            </div>
+                        </div>
                     )}
                 </div>
 
