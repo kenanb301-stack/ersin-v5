@@ -46,18 +46,29 @@ const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClose, onIm
             return;
           }
 
+          // Map Turkish Headers to Internal Names
+          const mappedData = json.map(row => ({
+            product_name: row['Açıklama / Parça Adı'] || row['UrunAdi'] || row['product_name'],
+            part_code: row['Parça Kodu'] || row['part_code'],
+            location: row['Reyon / Raf'] || row['location'],
+            material: row['Hammadde / Çeşit'] || row['material'],
+            unit: row['Birim'] || row['unit'] || 'Adet',
+            min_stock_level: Number(row['Kritik Stok (Min)']) || Number(row['min_stock']) || 0,
+            current_stock: Number(row['Açılış Stoğu']) || Number(row['current_stock']) || 0
+          }));
+
           // Validate headers (basic check)
-          const headers = Object.keys(json[0]);
           const required = ['product_name'];
-          const missing = required.filter(h => !headers.includes(h));
+          const firstRow = mappedData[0] as any;
+          const missing = required.filter(h => !firstRow[h]);
 
           if (missing.length > 0) {
-              setError(`Eksik Sütunlar: ${missing.join(', ')}. Lütfen örnek şablonu kullanın.`);
+              setError(`Eksik Bilgi: "Açıklama / Parça Adı" sütunu zorunludur. Lütfen örnek şablonu kullanın.`);
               setIsLoading(false);
               return;
           }
 
-          setPreviewData(json);
+          setPreviewData(mappedData);
         } catch (err) {
           setError("Excel okuma hatası. Lütfen dosya formatını kontrol edin.");
         } finally {
@@ -89,17 +100,13 @@ const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClose, onIm
   const downloadTemplate = () => {
     const template = [
       {
-        product_name: 'Örnek Ürün',
-        part_code: 'OMA-001',
-        barcode: '123456789',
-        brand: 'Marka',
-        category: 'Kategori',
-        unit: 'Adet',
-        current_stock: 10,
-        min_stock: 5,
-        location: 'A1-01',
-        purchase_price: 100,
-        sale_price: 150
+        'Parça Kodu': 'P-001',
+        'Reyon / Raf': 'A1-01',
+        'Açıklama / Parça Adı': 'Örnek Ürün',
+        'Hammadde / Çeşit': 'ST37',
+        'Birim': 'Adet',
+        'Kritik Stok (Min)': 5,
+        'Açılış Stoğu': 10
       }
     ];
     const ws = XLSX.utils.json_to_sheet(template);
