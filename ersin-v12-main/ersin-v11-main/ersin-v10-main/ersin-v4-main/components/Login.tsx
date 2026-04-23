@@ -83,6 +83,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         const cloudConfigStr = localStorage.getItem('depopro_cloud_config');
         const cloudConfig = cloudConfigStr ? JSON.parse(cloudConfigStr) : null;
 
+        // Proactively register/update device info so it appears in the admin panel
+        if (cloudConfig) {
+            await registerDevice(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, deviceId, getDeviceName());
+        }
+
         // Verify with device and cloud support
         const res = await verifyCredentials('admin', password, cloudConfig);
 
@@ -91,12 +96,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             onLogin(user, rememberMe);
         } else {
             setError(res.message || 'Hatalı şifre!');
-            
-            // If device not authorized, offer to register it
-            if (res.message && res.message.includes("cihaz yetkilendirilmemiş") && cloudConfig) {
-                await registerDevice(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, deviceId, getDeviceName());
-                setError(prev => prev + ` (Cihaz ID: ${deviceId.slice(-6)})`);
-            }
         }
     } catch (err) {
         setError('Giriş işlemi sırasında hata oluştu.');

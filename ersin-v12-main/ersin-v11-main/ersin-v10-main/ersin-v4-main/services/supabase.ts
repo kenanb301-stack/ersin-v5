@@ -201,9 +201,15 @@ export const registerDevice = async (url: string, key: string, deviceId: string,
             is_authorized: false 
         }, { onConflict: 'device_id' });
         
-        if (error) throw error;
+        if (error) {
+            console.error("Cihaz Kayıt Hatası:", error);
+            throw error;
+        }
         return { success: true };
-    } catch (e: any) { return { success: false }; }
+    } catch (e: any) { 
+        console.error("Cihaz Kayıt Catch Hatası:", e);
+        return { success: false }; 
+    }
 };
 
 export const getAuthorizedDevices = async (url: string, key: string) => {
