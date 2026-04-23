@@ -1,12 +1,12 @@
 {
   "short_name": "Omaks Depo",
   "name": "Omaks Depo Stok Takip",
-  "start_url": "./index.html",
+  "start_url": "index.html",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#2563eb",
   "background_color": "#f8fafc",
-  "scope": ".",
+  "scope": "./",
   "icons": [
     {
       "src": "logo.svg",
