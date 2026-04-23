@@ -17,6 +17,12 @@ interface PrintSettings {
     labelHeight: number; 
     scale: number;
     gap: number;
+    showPartCode: boolean;
+    showLocation: boolean;
+    showProductName: boolean;
+    posPartCode: 'TOP_LEFT' | 'TOP_RIGHT' | 'BOTTOM';
+    posLocation: 'TOP_LEFT' | 'TOP_RIGHT' | 'BOTTOM';
+    posProductName: 'TOP_LEFT' | 'TOP_RIGHT' | 'BOTTOM';
 }
 
 const DEFAULT_PRINT_SETTINGS: PrintSettings = {
@@ -26,7 +32,13 @@ const DEFAULT_PRINT_SETTINGS: PrintSettings = {
     paddingY: 2,
     labelHeight: 40,
     scale: 100,
-    gap: 0
+    gap: 0,
+    showPartCode: true,
+    showLocation: true,
+    showProductName: true,
+    posPartCode: 'TOP_LEFT',
+    posLocation: 'TOP_RIGHT',
+    posProductName: 'BOTTOM'
 };
 
 const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClose, products }) => {
@@ -175,6 +187,8 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
               .lbl-header { flex: 0 0 auto; min-height: 8mm; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; margin-bottom: 1mm; padding-bottom: 1mm; }
               .lbl-center { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 12mm; }
               .lbl-footer { flex: 0 0 auto; border-top: 1px solid #000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 1mm; }
+              .lbl-item-top { max-width: 50%; overflow: hidden; }
+              .lbl-item-bottom { width: 100%; text-align: center; }
               img { max-width: 100%; filter: contrast(2); }
           }
         `}</style>
@@ -231,7 +245,7 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
 
               <div className="flex-1 bg-slate-100 dark:bg-slate-950 p-6 flex flex-col">
                   {showSettings ? (
-                      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border dark:border-slate-800 max-w-lg mx-auto w-full space-y-6 animate-fade-in">
+                      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border dark:border-slate-800 max-w-lg mx-auto w-full space-y-6 animate-fade-in overflow-y-auto max-h-full">
                           <h3 className="font-bold flex items-center gap-2"><Ruler size={18} className="text-blue-500"/> Hizalama Ayarları</h3>
                           <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-1"><label className="text-xs font-bold text-slate-400">Üst Kenar (mm)</label><input type="number" step="0.5" value={printSettings.marginTop} onChange={e => setPrintSettings({...printSettings, marginTop: Number(e.target.value)})} className="w-full p-2 border rounded-lg dark:bg-slate-800"/></div>
@@ -239,6 +253,52 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
                               <div className="space-y-1"><label className="text-xs font-bold text-slate-400">Etiket Yükseklik (mm)</label><input type="number" value={printSettings.labelHeight} onChange={e => setPrintSettings({...printSettings, labelHeight: Number(e.target.value)})} className="w-full p-2 border rounded-lg dark:bg-slate-800"/></div>
                               <div className="space-y-1"><label className="text-xs font-bold text-slate-400">Ölçek (%)</label><input type="number" value={printSettings.scale} onChange={e => setPrintSettings({...printSettings, scale: Number(e.target.value)})} className="w-full p-2 border rounded-lg dark:bg-slate-800"/></div>
                           </div>
+
+                          <div className="pt-4 border-t dark:border-slate-800 space-y-4">
+                              <h4 className="text-sm font-bold">Alan Gizleme ve Konum</h4>
+                              
+                              <div className="space-y-4">
+                                  {/* Part Code */}
+                                  <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                                      <div className="flex items-center gap-3">
+                                          <input type="checkbox" checked={printSettings.showPartCode} onChange={e => setPrintSettings({...printSettings, showPartCode: e.target.checked})} className="w-4 h-4" />
+                                          <span className="text-xs font-bold">Parça Kodu</span>
+                                      </div>
+                                      <select value={printSettings.posPartCode} onChange={e => setPrintSettings({...printSettings, posPartCode: e.target.value as any})} className="text-[10px] p-1 border rounded bg-white dark:bg-slate-700">
+                                          <option value="TOP_LEFT">Üst Sol</option>
+                                          <option value="TOP_RIGHT">Üst Sağ</option>
+                                          <option value="BOTTOM">Alt Orta</option>
+                                      </select>
+                                  </div>
+
+                                  {/* Location */}
+                                  <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                                      <div className="flex items-center gap-3">
+                                          <input type="checkbox" checked={printSettings.showLocation} onChange={e => setPrintSettings({...printSettings, showLocation: e.target.checked})} className="w-4 h-4" />
+                                          <span className="text-xs font-bold">Reyon / Raf</span>
+                                      </div>
+                                      <select value={printSettings.posLocation} onChange={e => setPrintSettings({...printSettings, posLocation: e.target.value as any})} className="text-[10px] p-1 border rounded bg-white dark:bg-slate-700">
+                                          <option value="TOP_LEFT">Üst Sol</option>
+                                          <option value="TOP_RIGHT">Üst Sağ</option>
+                                          <option value="BOTTOM">Alt Orta</option>
+                                      </select>
+                                  </div>
+
+                                  {/* ProductName */}
+                                  <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                                      <div className="flex items-center gap-3">
+                                          <input type="checkbox" checked={printSettings.showProductName} onChange={e => setPrintSettings({...printSettings, showProductName: e.target.checked})} className="w-4 h-4" />
+                                          <span className="text-xs font-bold">Açıklama (Ad)</span>
+                                      </div>
+                                      <select value={printSettings.posProductName} onChange={e => setPrintSettings({...printSettings, posProductName: e.target.value as any})} className="text-[10px] p-1 border rounded bg-white dark:bg-slate-700">
+                                          <option value="TOP_LEFT">Üst Sol</option>
+                                          <option value="TOP_RIGHT">Üst Sağ</option>
+                                          <option value="BOTTOM">Alt Orta</option>
+                                      </select>
+                                  </div>
+                              </div>
+                          </div>
+
                           <button onClick={saveAlignSettings} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200">Ayarları Kaydet</button>
                       </div>
                   ) : (
@@ -273,8 +333,16 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
              <div key={`${item.product.id}-${item.index}`} className="label-container">
                 <div className="label-content-wrapper">
                     <div className="lbl-header">
-                        <div className="font-black text-lg">{item.product.part_code}</div>
-                        <div className="border-2 border-black px-1 rounded-sm font-bold text-xs">{item.product.location}</div>
+                        <div className="lbl-item-top" style={{ textAlign: 'left' }}>
+                            {printSettings.showPartCode && printSettings.posPartCode === 'TOP_LEFT' && <div className="font-black text-lg truncate">{item.product.part_code}</div>}
+                            {printSettings.showLocation && printSettings.posLocation === 'TOP_LEFT' && <div className="border-2 border-black px-1 rounded-sm font-bold text-xs truncate">{item.product.location}</div>}
+                            {printSettings.showProductName && printSettings.posProductName === 'TOP_LEFT' && <div className="font-bold text-xs truncate">{item.product.product_name}</div>}
+                        </div>
+                        <div className="lbl-item-top" style={{ textAlign: 'right' }}>
+                            {printSettings.showPartCode && printSettings.posPartCode === 'TOP_RIGHT' && <div className="font-black text-lg truncate">{item.product.part_code}</div>}
+                            {printSettings.showLocation && printSettings.posLocation === 'TOP_RIGHT' && <div className="border-2 border-black px-1 rounded-sm font-bold text-xs truncate">{item.product.location}</div>}
+                            {printSettings.showProductName && printSettings.posProductName === 'TOP_RIGHT' && <div className="font-bold text-xs truncate">{item.product.product_name}</div>}
+                        </div>
                     </div>
                     <div className="lbl-center">
                         {barcodeImages[item.product.id] ? (
@@ -284,7 +352,11 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
                         )}
                     </div>
                     <div className="lbl-footer">
-                        <div className="font-bold text-center text-xs">{item.product.product_name}</div>
+                        <div className="lbl-item-bottom">
+                            {printSettings.showPartCode && printSettings.posPartCode === 'BOTTOM' && <div className="font-black text-xs truncate">{item.product.part_code}</div>}
+                            {printSettings.showLocation && printSettings.posLocation === 'BOTTOM' && <div className="font-bold text-xs truncate">{item.product.location}</div>}
+                            {printSettings.showProductName && printSettings.posProductName === 'BOTTOM' && <div className="font-bold text-xs truncate">{item.product.product_name}</div>}
+                        </div>
                     </div>
                 </div>
              </div>
