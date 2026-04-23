@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy, useCallback } from 'react';
-import { Package, Menu, X, FileSpreadsheet, Moon, Sun, Printer, ScanLine, LogOut, Database as DatabaseIcon, RefreshCw, Loader2, Info, Clock, Home, Activity, FileDown } from 'lucide-react';
+import { Package, Menu, X, FileSpreadsheet, Moon, Sun, Printer, ScanLine, LogOut, Database as DatabaseIcon, RefreshCw, Loader2, Info, Clock, Home, Activity, FileDown, Shield } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import InventoryList from './components/InventoryList';
 import TransactionHistory from './components/TransactionHistory';
@@ -16,6 +16,7 @@ import OrderReconciliationModal from './components/OrderReconciliationModal';
 import AutoExportModal from './components/AutoExportModal'; 
 import InstallPrompt from './components/InstallPrompt'; 
 import BarcodePrinterModal from './components/BarcodePrinterModal';
+import SecuritySettingsModal from './components/SecuritySettingsModal';
 import { saveToSupabase, loadFromSupabase } from './services/supabase';
 import { generateAndDownloadExcel } from './utils/excelExport'; 
 import { INITIAL_PRODUCTS, INITIAL_TRANSACTIONS } from './constants';
@@ -126,6 +127,7 @@ function App() {
   const [isReconciliationOpen, setIsReconciliationOpen] = useState(false);
   const [isGlobalScannerOpen, setIsGlobalScannerOpen] = useState(false);
   const [isAutoExportModalOpen, setIsAutoExportModalOpen] = useState(false); 
+  const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // URL Setup Handler
@@ -215,6 +217,7 @@ function App() {
       </button>
       {currentUser.role === 'ADMIN' && (
         <>
+          <button onClick={() => setIsSecurityModalOpen(true)} title="Güvenlik Merkezi" className="p-2 rounded-xl text-amber-600 hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm"><Shield size={20}/></button>
           <button onClick={() => setIsCloudSetupOpen(true)} title="Bulut Ayarları" className="p-2 rounded-xl text-indigo-500 hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm"><DatabaseIcon size={20}/></button>
           <button onClick={() => setIsAutoExportModalOpen(true)} title="Otomatik Excel" className="p-2 rounded-xl text-blue-500 hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm"><FileSpreadsheet size={20}/></button>
           <button onClick={() => setIsDataBackupOpen(true)} title="Veri Yönetimi" className="p-2 rounded-xl text-rose-500 hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm"><FileDown size={20}/></button>
@@ -434,6 +437,7 @@ function App() {
             reader.readAsText(file);
         }} />
       <OrderManagerModal isOpen={isOrderManagerOpen} onClose={() => setIsOrderManagerOpen(false)} products={products} orders={orders} onSaveOrder={(newOrder) => saveData(products, transactions, [...orders, newOrder])} onDeleteOrder={(id) => saveData(products, transactions, orders.filter(o => o.id !== id))} onUpdateOrderStatus={(id, s) => saveData(products, transactions, orders.map(o => o.id === id ? {...o, status: s} : o))} onUpdateOrderProgress={(id, picked) => saveData(products, transactions, orders.map(o => o.id === id ? {...o, picked_items: picked} : o), true)} currentUser={currentUser} />
+      <SecuritySettingsModal isOpen={isSecurityModalOpen} onClose={() => setIsSecurityModalOpen(false)} cloudConfig={cloudConfig} />
       <InstallPrompt />
     </div>
   );

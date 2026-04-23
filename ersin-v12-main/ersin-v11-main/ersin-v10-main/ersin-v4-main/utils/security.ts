@@ -1,4 +1,7 @@
 
+import { getDeviceId } from './device';
+import { loadAppSettings, checkDeviceAuthorization } from '../services/supabase';
+
 /**
  * SECURITY UTILITIES
  * OWASP Standards Compliant
@@ -48,23 +51,39 @@ export const validatePasswordStrength = (password: string): { valid: boolean; me
 const DEFAULT_ADMIN_HASH = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"; // hash of 'admin'
 const USER_HASH = "04f8996da763b7a969b1028ee3007569eaf3a635486ddab211d512c85b9df8fb"; // hash of 'user'
 
-export const verifyCredentials = async (username: string, password: string): Promise<boolean> => {
+export const verifyCredentials = async (username: string, password: string, cloudConfig?: any): Promise<{ success: boolean; message?: string }> => {
     const inputHash = await hashPassword(password);
     
     if (username === 'user') {
-        return inputHash === USER_HASH;
+        return { success: inputHash === USER_HASH };
     }
 
     if (username === 'admin') {
-        // Check if custom admin password exists in localStorage
+        // 1. Check Device Authorization first if cloud is connected
+        if (cloudConfig) {
+            const deviceId = getDeviceId();
+            const authCheck = await checkDeviceAuthorization(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, deviceId);
+            
+            if (authCheck.success && !authCheck.authorized) {
+                return { success: false, message: "Bu cihaz yetkilendirilmemiş. Lütfen yönetici ile iletişime geçin." };
+            }
+
+            // 2. Check Password Hash from Supabase
+            const settingsRes = await loadAppSettings(cloudConfig.supabaseUrl, cloudConfig.supabaseKey);
+            if (settingsRes.success && settingsRes.data && settingsRes.data.admin_password_hash) {
+                return { success: inputHash === settingsRes.data.admin_password_hash };
+            }
+        }
+
+        // Fallback to local storage or default
         const customHash = localStorage.getItem('depopro_admin_hash');
         if (customHash) {
-            return inputHash === customHash;
+            return { success: inputHash === customHash };
         }
-        return inputHash === DEFAULT_ADMIN_HASH;
+        return { success: inputHash === DEFAULT_ADMIN_HASH };
     }
 
-    return false;
+    return { success: false };
 };
 
 export const setAdminPassword = async (newPassword: string) => {

@@ -175,3 +175,60 @@ export const saveAppSetting = async (url: string, key: string, settingKey: strin
         return { success: true };
     } catch (e: any) { return { success: false, message: e.message }; }
 };
+
+export const checkDeviceAuthorization = async (url: string, key: string, deviceId: string) => {
+    try {
+        const client = initSupabase(url, key);
+        if (!client) return { success: false, authorized: false };
+        
+        const { data, error } = await client.from('authorized_devices').select('is_authorized').eq('device_id', deviceId).single();
+        if (error) {
+            return { success: true, authorized: false, notFound: true };
+        }
+        
+        return { success: true, authorized: data?.is_authorized || false };
+    } catch (e: any) { return { success: false, authorized: false }; }
+};
+
+export const registerDevice = async (url: string, key: string, deviceId: string, deviceName: string) => {
+    try {
+        const client = initSupabase(url, key);
+        if (!client) return { success: false };
+        
+        const { error } = await client.from('authorized_devices').upsert({ 
+            device_id: deviceId, 
+            device_name: deviceName,
+            is_authorized: false 
+        }, { onConflict: 'device_id' });
+        
+        if (error) throw error;
+        return { success: true };
+    } catch (e: any) { return { success: false }; }
+};
+
+export const getAuthorizedDevices = async (url: string, key: string) => {
+    try {
+        const client = initSupabase(url, key);
+        if (!client) return { success: false, data: [] };
+        
+        const { data, error } = await client.from('authorized_devices').select('*').order('updated_at', { ascending: false });
+        if (error) throw error;
+        
+        return { success: true, data };
+    } catch (e: any) { return { success: false, data: [] }; }
+};
+
+export const updateDeviceAuthorization = async (url: string, key: string, deviceId: string, isAuthorized: boolean) => {
+    try {
+        const client = initSupabase(url, key);
+        if (!client) return { success: false };
+        
+        const { error } = await client.from('authorized_devices').update({ 
+            is_authorized: isAuthorized,
+            updated_at: new Date().toISOString()
+        }).eq('device_id', deviceId);
+        
+        if (error) throw error;
+        return { success: true };
+    } catch (e: any) { return { success: false }; }
+};

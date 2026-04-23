@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Package, ShieldCheck, Eye, ArrowRight, AlertTriangle, Lock, Cloud, Wifi, WifiOff, CheckCircle } from 'lucide-react';
 import { User as UserType } from '../types';
 import { verifyCredentials } from '../utils/security';
-import { loadAppSettings } from '../services/supabase';
+import { loadAppSettings, registerDevice } from '../services/supabase';
+import { getDeviceId, getDeviceName } from '../utils/device';
 
 interface LoginProps {
   onLogin: (user: UserType, remember: boolean) => void;
@@ -17,6 +18,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'IDLE' | 'CHECKING' | 'SYNCED' | 'OFFLINE'>('IDLE');
+  const [deviceId] = useState(getDeviceId());
 
   // Device Restriction Check
   const isRestrictedDevice = localStorage.getItem('depopro_device_restriction') === 'true';
@@ -78,29 +80,23 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setIsLoading(true);
 
     try {
-        // 1. Try one last sync if we are connected
-        if (syncStatus === 'SYNCED' || syncStatus === 'CHECKING') {
-             const cloudConfigStr = localStorage.getItem('depopro_cloud_config');
-             if (cloudConfigStr) {
-                 const config = JSON.parse(cloudConfigStr);
-                 const result = await loadAppSettings(config.supabaseUrl, config.supabaseKey);
-                 if (result.success && result.data?.['admin_password_hash']) {
-                     localStorage.setItem('depopro_admin_hash', result.data['admin_password_hash']);
-                 }
-             }
-        }
+        const cloudConfigStr = localStorage.getItem('depopro_cloud_config');
+        const cloudConfig = cloudConfigStr ? JSON.parse(cloudConfigStr) : null;
 
-        // 2. Simulate slight delay for UX/Security
-        await new Promise(r => setTimeout(r, 500));
+        // Verify with device and cloud support
+        const res = await verifyCredentials('admin', password, cloudConfig);
 
-        // 3. Verify
-        const isValid = await verifyCredentials('admin', password);
-
-        if (isValid) {
+        if (res.success) {
             const user: UserType = { username: 'admin', name: 'Depo Sorumlusu', role: 'ADMIN' };
             onLogin(user, rememberMe);
         } else {
-            setError('Hatalı şifre!');
+            setError(res.message || 'Hatalı şifre!');
+            
+            // If device not authorized, offer to register it
+            if (res.message && res.message.includes("cihaz yetkilendirilmemiş") && cloudConfig) {
+                await registerDevice(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, deviceId, getDeviceName());
+                setError(prev => prev + ` (Cihaz ID: ${deviceId.slice(-6)})`);
+            }
         }
     } catch (err) {
         setError('Giriş işlemi sırasında hata oluştu.');
