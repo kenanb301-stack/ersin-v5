@@ -11,7 +11,7 @@
   "dependencies": {
     "@google/genai": "^1.34.0",
     "@supabase/supabase-js": "^2.39.7",
-    "@vitejs/plugin-react": "^4.2.1",
+    "@vitejs/plugin-react": "^4.7.0",
     "html5-qrcode": "^2.3.8",
     "jsbarcode": "^3.11.6",
     "lucide-react": "^0.344.0",
