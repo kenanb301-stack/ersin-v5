@@ -18,7 +18,8 @@ import InstallPrompt from './components/InstallPrompt';
 import BarcodePrinterModal from './components/BarcodePrinterModal';
 import SecuritySettingsModal from './components/SecuritySettingsModal';
 import BulkImportModal from './components/BulkImportModal';
-import { saveToSupabase, loadFromSupabase } from './services/supabase';
+import { saveToSupabase, loadFromSupabase, checkDeviceAuthorization } from './services/supabase';
+import { getDeviceId } from './utils/device';
 import { generateAndDownloadExcel } from './utils/excelExport'; 
 import { INITIAL_PRODUCTS, INITIAL_TRANSACTIONS } from './constants';
 import { Product, Transaction, TransactionType, ViewState, User, CloudConfig, Order, CycleCount } from './types';
@@ -90,6 +91,30 @@ function App() {
     return saved === null ? true : saved === 'true';
   });
 
+  // SECURITY: Periodic Device Authorization Check
+  useEffect(() => {
+    if (!currentUser || !cloudConfig) return;
+
+    const checkAuthStatus = async () => {
+        const deviceId = getDeviceId();
+        const res = await checkDeviceAuthorization(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, deviceId);
+        
+        // If device was previously authorized but now is not (or not found), force logout
+        if (res.success && !res.authorized) {
+            console.warn("Cihaz yetkisi iptal edildi. Oturum kapatılıyor...");
+            handleLogout();
+            alert("⚠️ Bu cihazın yetkisi iptal edildiği için oturum kapatıldı.");
+        }
+    };
+
+    // Check immediately on mount/login
+    checkAuthStatus();
+
+    // Then check every 2 minutes
+    const interval = setInterval(checkAuthStatus, 120000);
+    return () => clearInterval(interval);
+  }, [currentUser, cloudConfig]);
+
   useEffect(() => {
     const root = document.documentElement;
     if (isDarkMode) {
@@ -157,15 +182,21 @@ function App() {
     }
   }, []);
 
-  const saveData = useCallback((newProducts: Product[], newTransactions: Transaction[], newOrders?: Order[], silent: boolean = false) => {
+  const saveData = useCallback(async (newProducts: Product[], newTransactions: Transaction[], newOrders?: Order[], silent: boolean = false) => {
       setProducts(newProducts);
       setTransactions(newTransactions);
       if (newOrders) setOrders(newOrders);
+      
       localStorage.setItem('depopro_products', JSON.stringify(newProducts));
       localStorage.setItem('depopro_transactions', JSON.stringify(newTransactions));
       if (newOrders) localStorage.setItem('depopro_orders', JSON.stringify(newOrders));
-      if (cloudConfig?.supabaseUrl && !silent) {
-          saveToSupabase(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, newProducts, newTransactions, newOrders || orders);
+      
+      if (cloudConfig?.supabaseUrl) {
+          const res = await saveToSupabase(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, newProducts, newTransactions, newOrders || orders);
+          if (!res.success && !silent) {
+              console.error("Bulut Senkronizasyon Hatası:", res.message);
+              // alert("⚠️ Veriler buluta kaydedilemedi! Lütfen internet bağlantınızı ve Supabase ayarlarınızı kontrol edin.");
+          }
       }
   }, [cloudConfig, orders]);
 
