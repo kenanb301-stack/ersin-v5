@@ -1,12 +1,12 @@
 {
   "short_name": "Omaks Depo",
   "name": "Omaks Depo Stok Takip",
-  "start_url": "./",
+  "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#2563eb",
   "background_color": "#f8fafc",
-  "scope": "./",
+  "scope": ".",
   "icons": [
     {
       "src": "logo.svg",
@@ -32,7 +32,7 @@
       "name": "Barkod Oku",
       "short_name": "Oku",
       "description": "Hızlı barkod tarayıcıyı aç",
-      "url": "./?action=scan",
+      "url": "index.html?action=scan",
       "icons": [
         {
           "src": "logo.svg",
