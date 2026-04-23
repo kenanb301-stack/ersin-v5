@@ -101,6 +101,13 @@ function App() {
 
   const toggleDarkMode = () => setIsDarkMode(prev => !prev);
 
+  // Auto-sync on mount
+  useEffect(() => {
+    if (currentUser && cloudConfig?.supabaseUrl && cloudConfig?.supabaseKey) {
+        handleCloudSync(true);
+    }
+  }, [currentUser]);
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<TransactionType>(TransactionType.IN);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -121,6 +128,31 @@ function App() {
   const [isAutoExportModalOpen, setIsAutoExportModalOpen] = useState(false); 
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
+  // URL Setup Handler
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const setupStr = params.get('setup');
+    if (setupStr) {
+      try {
+        const decoded = atob(setupStr);
+        const config = JSON.parse(decoded);
+        if (config.supabaseUrl && config.supabaseKey) {
+            localStorage.setItem('depopro_cloud_config', JSON.stringify({
+                supabaseUrl: config.supabaseUrl,
+                supabaseKey: config.supabaseKey
+            }));
+            if (config.restrictedMode) localStorage.setItem('depopro_device_restriction', 'true');
+            if (config.autoLogin) {
+                 const autoUser = { username: 'user', name: 'İzleyici (Oto)', role: 'VIEWER' };
+                 sessionStorage.setItem('depopro_user_session', JSON.stringify(autoUser));
+                 setCurrentUser(autoUser as any);
+            }
+            window.location.href = window.location.pathname; 
+        }
+      } catch (e) { console.error("Auto setup failed", e); }
+    }
+  }, []);
+
   const saveData = useCallback((newProducts: Product[], newTransactions: Transaction[], newOrders?: Order[], silent: boolean = false) => {
       setProducts(newProducts);
       setTransactions(newTransactions);
@@ -133,9 +165,9 @@ function App() {
       }
   }, [cloudConfig, orders]);
 
-  const handleCloudSync = async () => {
+  const handleCloudSync = async (silent: boolean = false) => {
     if (!cloudConfig?.supabaseUrl || !cloudConfig?.supabaseKey) {
-        setIsCloudSetupOpen(true);
+        if (!silent) setIsCloudSetupOpen(true);
         return;
     }
     setIsSyncing(true);
@@ -148,10 +180,10 @@ function App() {
             localStorage.setItem('depopro_products', JSON.stringify(result.data.products));
             localStorage.setItem('depopro_transactions', JSON.stringify(result.data.transactions));
             localStorage.setItem('depopro_orders', JSON.stringify(result.data.orders));
-            alert("✅ Veriler buluttan güncellendi.");
+            if (!silent) alert("✅ Veriler buluttan güncellendi.");
         }
     } catch (e) {
-        alert("Bağlantı hatası.");
+        if (!silent) alert("Bağlantı hatası.");
     } finally {
         setIsSyncing(false);
     }
