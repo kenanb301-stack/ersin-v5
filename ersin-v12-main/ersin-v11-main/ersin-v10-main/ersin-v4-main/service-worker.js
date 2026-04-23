@@ -1,10 +1,10 @@
 
 const CACHE_NAME = 'depopro-v1.2';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/logo.svg',
+  './',
+  'index.html',
+  'manifest.json',
+  'logo.svg',
   'https://cdn.tailwindcss.com'
 ];
 

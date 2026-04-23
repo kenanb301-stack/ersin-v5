@@ -1,15 +1,27 @@
 {
   "short_name": "Omaks Depo",
   "name": "Omaks Depo Stok Takip",
-  "start_url": ".",
+  "start_url": "./",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#2563eb",
   "background_color": "#f8fafc",
-  "scope": "/",
+  "scope": "./",
   "icons": [
     {
-      "src": "/logo.svg",
+      "src": "logo.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "logo.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
@@ -20,8 +32,8 @@
       "name": "Barkod Oku",
       "short_name": "Oku",
       "description": "Hızlı barkod tarayıcıyı aç",
-      "url": "/?action=scan",
-      "icons": [{ "src": "/logo.svg", "sizes": "any" }]
+      "url": "index.html?action=scan",
+      "icons": [{ "src": "logo.svg", "sizes": "any" }]
     }
   ]
 }

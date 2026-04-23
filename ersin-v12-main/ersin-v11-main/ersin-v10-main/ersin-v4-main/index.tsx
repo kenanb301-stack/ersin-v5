@@ -69,7 +69,7 @@ root.render(
 // Service Worker Kaydı
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
+    navigator.serviceWorker.register('service-worker.js')
       .then(registration => console.log('SW Kaydedildi:', registration.scope))
       .catch(error => console.error('SW Kayıt Hatası:', error));
   });
