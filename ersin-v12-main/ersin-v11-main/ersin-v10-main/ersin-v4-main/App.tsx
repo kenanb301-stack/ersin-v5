@@ -230,93 +230,110 @@ function App() {
       localStorage.removeItem('depopro_remembered_user');
   };
 
-  const handleBulkImport = (data: any[]) => {
+  const handleBulkImport = (data: any[], mode: 'PRODUCT' | 'TRANSACTION') => {
     const now = new Date().toISOString();
     let updatedProducts = [...products];
     let newTransactions: Transaction[] = [];
 
-    data.forEach(item => {
-        // Find existing product by ID, Part Code, or Barcode
-        const existingIdx = updatedProducts.findIndex(p => 
-            (item.part_code && p.part_code === String(item.part_code)) || 
-            (item.barcode && p.barcode === String(item.barcode))
-        );
+    if (mode === 'PRODUCT') {
+        data.forEach(item => {
+            const existingIdx = updatedProducts.findIndex(p => 
+                (item.part_code && p.part_code === String(item.part_code)) || 
+                (item.barcode && p.barcode === String(item.barcode))
+            );
 
-        const incomingStock = Number(item.current_stock) || 0;
+            const incomingStock = Number(item.current_stock) || 0;
 
-        if (existingIdx > -1) {
-            const existing = updatedProducts[existingIdx];
-            const stockDiff = incomingStock - existing.current_stock;
+            if (existingIdx > -1) {
+                const existing = updatedProducts[existingIdx];
+                const stockDiff = incomingStock - existing.current_stock;
+                
+                updatedProducts[existingIdx] = {
+                    ...existing,
+                    current_stock: incomingStock,
+                    material: item.material || existing.material,
+                    location: item.location || existing.location,
+                    unit: item.unit || existing.unit,
+                    min_stock_level: item.min_stock_level !== undefined ? Number(item.min_stock_level) : existing.min_stock_level,
+                };
+
+                if (stockDiff !== 0) {
+                    newTransactions.push({
+                        id: `t-${generateId()}`,
+                        product_id: existing.id,
+                        product_name: existing.product_name,
+                        type: TransactionType.CORRECTION,
+                        quantity: Math.abs(stockDiff),
+                        date: now,
+                        description: `TOPLU GÜNCELLEME: ${stockDiff > 0 ? '+' : ''}${stockDiff}`,
+                        created_by: currentUser?.name || 'Sistem',
+                        previous_stock: existing.current_stock,
+                        new_stock: incomingStock
+                    });
+                }
+            } else {
+                const newId = `p-${generateId()}`;
+                const newProduct: Product = {
+                    id: newId,
+                    short_id: generateShortId(),
+                    product_name: item.product_name,
+                    part_code: item.part_code ? String(item.part_code) : '',
+                    barcode: item.barcode ? String(item.barcode) : (item.part_code ? String(item.part_code) : ''),
+                    material: item.material || '',
+                    current_stock: incomingStock,
+                    min_stock_level: Number(item.min_stock_level) || 0,
+                    unit: item.unit || 'Adet',
+                    location: item.location || '',
+                    created_at: now
+                };
+                updatedProducts.push(newProduct);
+
+                if (incomingStock !== 0) {
+                    newTransactions.push({
+                        id: `t-${generateId()}`,
+                        product_id: newId,
+                        product_name: newProduct.product_name,
+                        type: TransactionType.IN,
+                        quantity: incomingStock,
+                        date: now,
+                        description: 'TOPLU YENİ ÜRÜN',
+                        created_by: currentUser?.name || 'Sistem',
+                        previous_stock: 0,
+                        new_stock: incomingStock
+                    });
+                }
+            }
+        });
+    } else {
+        // TRANSACTION MODE
+        data.forEach(item => {
+            const productIdx = updatedProducts.findIndex(p => p.part_code === String(item.part_code));
             
-            // Only update if there's data to change
-            updatedProducts[existingIdx] = {
-                ...existing,
-                current_stock: incomingStock,
-                brand: item.brand || existing.brand,
-                category: item.category || existing.category,
-                location: item.location || existing.location,
-                material: item.material || existing.material,
-                unit: item.unit || existing.unit,
-                min_stock_level: item.min_stock_level !== undefined ? Number(item.min_stock_level) : existing.min_stock_level,
-                purchase_price: item.purchase_price !== undefined ? Number(item.purchase_price) : existing.purchase_price,
-                sale_price: item.sale_price !== undefined ? Number(item.sale_price) : existing.sale_price,
-            };
-
-            if (stockDiff !== 0) {
+            if (productIdx > -1) {
+                const product = updatedProducts[productIdx];
+                const change = item.type === 'IN' ? item.quantity : -item.quantity;
+                const newStock = product.current_stock + change;
+                
+                updatedProducts[productIdx] = { ...product, current_stock: newStock };
+                
                 newTransactions.push({
                     id: `t-${generateId()}`,
-                    product_id: existing.id,
-                    product_name: existing.product_name,
-                    type: TransactionType.CORRECTION,
-                    quantity: Math.abs(stockDiff),
+                    product_id: product.id,
+                    product_name: product.product_name,
+                    type: item.type as any,
+                    quantity: item.quantity,
                     date: now,
-                    description: `EXCEL AKTARIM: ${stockDiff > 0 ? '+' : ''}${stockDiff}`,
+                    description: item.description,
                     created_by: currentUser?.name || 'Sistem',
-                    previous_stock: existing.current_stock,
-                    new_stock: incomingStock
+                    previous_stock: product.current_stock,
+                    new_stock: newStock
                 });
             }
-        } else {
-            // New Product
-            const newId = `p-${generateId()}`;
-            const newProduct: Product = {
-                id: newId,
-                short_id: generateShortId(),
-                product_name: item.product_name,
-                part_code: item.part_code ? String(item.part_code) : '',
-                barcode: item.barcode ? String(item.barcode) : (item.part_code ? String(item.part_code) : ''),
-                brand: item.brand || '',
-                category: item.category || 'Diğer',
-                material: item.material || '',
-                current_stock: incomingStock,
-                min_stock_level: Number(item.min_stock_level) || 0,
-                unit: item.unit || 'Adet',
-                location: item.location || '',
-                purchase_price: Number(item.purchase_price) || 0,
-                sale_price: Number(item.sale_price) || 0,
-                created_at: now
-            };
-            updatedProducts.push(newProduct);
-
-            if (incomingStock !== 0) {
-                newTransactions.push({
-                    id: `t-${generateId()}`,
-                    product_id: newId,
-                    product_name: newProduct.product_name,
-                    type: TransactionType.IN,
-                    quantity: incomingStock,
-                    date: now,
-                    description: 'EXCEL İLE YENİ ÜRÜN',
-                    created_by: currentUser?.name || 'Sistem',
-                    previous_stock: 0,
-                    new_stock: incomingStock
-                });
-            }
-        }
-    });
+        });
+    }
 
     saveData(updatedProducts, [...newTransactions, ...transactions], orders);
-    alert(`${data.length} satır işlendi. Veriler güncellendi.`);
+    alert(`${data.length} kayıt işlendi.`);
   };
 
   const navItems = [
