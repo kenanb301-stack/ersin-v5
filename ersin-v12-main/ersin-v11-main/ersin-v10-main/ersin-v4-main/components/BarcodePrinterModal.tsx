@@ -23,6 +23,9 @@ interface PrintSettings {
     posPartCode: 'TOP_LEFT' | 'TOP_RIGHT' | 'BOTTOM';
     posLocation: 'TOP_LEFT' | 'TOP_RIGHT' | 'BOTTOM';
     posProductName: 'TOP_LEFT' | 'TOP_RIGHT' | 'BOTTOM';
+    fontSizePartCode: number;
+    fontSizeLocation: number;
+    fontSizeProductName: number;
 }
 
 const DEFAULT_PRINT_SETTINGS: PrintSettings = {
@@ -38,7 +41,10 @@ const DEFAULT_PRINT_SETTINGS: PrintSettings = {
     showProductName: true,
     posPartCode: 'TOP_LEFT',
     posLocation: 'TOP_RIGHT',
-    posProductName: 'BOTTOM'
+    posProductName: 'BOTTOM',
+    fontSizePartCode: 18,
+    fontSizeLocation: 12,
+    fontSizeProductName: 12
 };
 
 const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClose, products }) => {
@@ -259,42 +265,60 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
                               
                               <div className="space-y-4">
                                   {/* Part Code */}
-                                  <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                                      <div className="flex items-center gap-3">
-                                          <input type="checkbox" checked={printSettings.showPartCode} onChange={e => setPrintSettings({...printSettings, showPartCode: e.target.checked})} className="w-4 h-4" />
-                                          <span className="text-xs font-bold">Parça Kodu</span>
+                                  <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-2">
+                                      <div className="flex items-center justify-between">
+                                          <div className="flex items-center gap-3">
+                                              <input type="checkbox" checked={printSettings.showPartCode} onChange={e => setPrintSettings({...printSettings, showPartCode: e.target.checked})} className="w-4 h-4" />
+                                              <span className="text-xs font-bold">Parça Kodu</span>
+                                          </div>
+                                          <select value={printSettings.posPartCode} onChange={e => setPrintSettings({...printSettings, posPartCode: e.target.value as any})} className="text-[10px] p-1 border rounded bg-white dark:bg-slate-700">
+                                              <option value="TOP_LEFT">Üst Sol</option>
+                                              <option value="TOP_RIGHT">Üst Sağ</option>
+                                              <option value="BOTTOM">Alt Orta</option>
+                                          </select>
                                       </div>
-                                      <select value={printSettings.posPartCode} onChange={e => setPrintSettings({...printSettings, posPartCode: e.target.value as any})} className="text-[10px] p-1 border rounded bg-white dark:bg-slate-700">
-                                          <option value="TOP_LEFT">Üst Sol</option>
-                                          <option value="TOP_RIGHT">Üst Sağ</option>
-                                          <option value="BOTTOM">Alt Orta</option>
-                                      </select>
+                                      <div className="flex items-center gap-2">
+                                          <label className="text-[10px] text-slate-400 font-bold">Yazı Boyutu (px):</label>
+                                          <input type="number" value={printSettings.fontSizePartCode} onChange={e => setPrintSettings({...printSettings, fontSizePartCode: Number(e.target.value)})} className="w-16 p-1 text-[10px] border rounded dark:bg-slate-700" />
+                                      </div>
                                   </div>
 
                                   {/* Location */}
-                                  <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                                      <div className="flex items-center gap-3">
-                                          <input type="checkbox" checked={printSettings.showLocation} onChange={e => setPrintSettings({...printSettings, showLocation: e.target.checked})} className="w-4 h-4" />
-                                          <span className="text-xs font-bold">Reyon / Raf</span>
+                                  <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-2">
+                                      <div className="flex items-center justify-between">
+                                          <div className="flex items-center gap-3">
+                                              <input type="checkbox" checked={printSettings.showLocation} onChange={e => setPrintSettings({...printSettings, showLocation: e.target.checked})} className="w-4 h-4" />
+                                              <span className="text-xs font-bold">Reyon / Raf</span>
+                                          </div>
+                                          <select value={printSettings.posLocation} onChange={e => setPrintSettings({...printSettings, posLocation: e.target.value as any})} className="text-[10px] p-1 border rounded bg-white dark:bg-slate-700">
+                                              <option value="TOP_LEFT">Üst Sol</option>
+                                              <option value="TOP_RIGHT">Üst Sağ</option>
+                                              <option value="BOTTOM">Alt Orta</option>
+                                          </select>
                                       </div>
-                                      <select value={printSettings.posLocation} onChange={e => setPrintSettings({...printSettings, posLocation: e.target.value as any})} className="text-[10px] p-1 border rounded bg-white dark:bg-slate-700">
-                                          <option value="TOP_LEFT">Üst Sol</option>
-                                          <option value="TOP_RIGHT">Üst Sağ</option>
-                                          <option value="BOTTOM">Alt Orta</option>
-                                      </select>
+                                      <div className="flex items-center gap-2">
+                                          <label className="text-[10px] text-slate-400 font-bold">Yazı Boyutu (px):</label>
+                                          <input type="number" value={printSettings.fontSizeLocation} onChange={e => setPrintSettings({...printSettings, fontSizeLocation: Number(e.target.value)})} className="w-16 p-1 text-[10px] border rounded dark:bg-slate-700" />
+                                      </div>
                                   </div>
 
                                   {/* ProductName */}
-                                  <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                                      <div className="flex items-center gap-3">
-                                          <input type="checkbox" checked={printSettings.showProductName} onChange={e => setPrintSettings({...printSettings, showProductName: e.target.checked})} className="w-4 h-4" />
-                                          <span className="text-xs font-bold">Açıklama (Ad)</span>
+                                  <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-2">
+                                      <div className="flex items-center justify-between">
+                                          <div className="flex items-center gap-3">
+                                              <input type="checkbox" checked={printSettings.showProductName} onChange={e => setPrintSettings({...printSettings, showProductName: e.target.checked})} className="w-4 h-4" />
+                                              <span className="text-xs font-bold">Açıklama (Ad)</span>
+                                          </div>
+                                          <select value={printSettings.posProductName} onChange={e => setPrintSettings({...printSettings, posProductName: e.target.value as any})} className="text-[10px] p-1 border rounded bg-white dark:bg-slate-700">
+                                              <option value="TOP_LEFT">Üst Sol</option>
+                                              <option value="TOP_RIGHT">Üst Sağ</option>
+                                              <option value="BOTTOM">Alt Orta</option>
+                                          </select>
                                       </div>
-                                      <select value={printSettings.posProductName} onChange={e => setPrintSettings({...printSettings, posProductName: e.target.value as any})} className="text-[10px] p-1 border rounded bg-white dark:bg-slate-700">
-                                          <option value="TOP_LEFT">Üst Sol</option>
-                                          <option value="TOP_RIGHT">Üst Sağ</option>
-                                          <option value="BOTTOM">Alt Orta</option>
-                                      </select>
+                                      <div className="flex items-center gap-2">
+                                          <label className="text-[10px] text-slate-400 font-bold">Yazı Boyutu (px):</label>
+                                          <input type="number" value={printSettings.fontSizeProductName} onChange={e => setPrintSettings({...printSettings, fontSizeProductName: Number(e.target.value)})} className="w-16 p-1 text-[10px] border rounded dark:bg-slate-700" />
+                                      </div>
                                   </div>
                               </div>
                           </div>
@@ -334,14 +358,14 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
                 <div className="label-content-wrapper">
                     <div className="lbl-header">
                         <div className="lbl-item-top" style={{ textAlign: 'left' }}>
-                            {printSettings.showPartCode && printSettings.posPartCode === 'TOP_LEFT' && <div className="font-black text-lg truncate">{item.product.part_code}</div>}
-                            {printSettings.showLocation && printSettings.posLocation === 'TOP_LEFT' && <div className="border-2 border-black px-1 rounded-sm font-bold text-xs truncate">{item.product.location}</div>}
-                            {printSettings.showProductName && printSettings.posProductName === 'TOP_LEFT' && <div className="font-bold text-xs truncate">{item.product.product_name}</div>}
+                            {printSettings.showPartCode && printSettings.posPartCode === 'TOP_LEFT' && <div className="font-black truncate" style={{ fontSize: `${printSettings.fontSizePartCode}px` }}>{item.product.part_code}</div>}
+                            {printSettings.showLocation && printSettings.posLocation === 'TOP_LEFT' && <div className="border-2 border-black px-1 rounded-sm font-bold truncate" style={{ fontSize: `${printSettings.fontSizeLocation}px` }}>{item.product.location}</div>}
+                            {printSettings.showProductName && printSettings.posProductName === 'TOP_LEFT' && <div className="font-bold truncate" style={{ fontSize: `${printSettings.fontSizeProductName}px` }}>{item.product.product_name}</div>}
                         </div>
                         <div className="lbl-item-top" style={{ textAlign: 'right' }}>
-                            {printSettings.showPartCode && printSettings.posPartCode === 'TOP_RIGHT' && <div className="font-black text-lg truncate">{item.product.part_code}</div>}
-                            {printSettings.showLocation && printSettings.posLocation === 'TOP_RIGHT' && <div className="border-2 border-black px-1 rounded-sm font-bold text-xs truncate">{item.product.location}</div>}
-                            {printSettings.showProductName && printSettings.posProductName === 'TOP_RIGHT' && <div className="font-bold text-xs truncate">{item.product.product_name}</div>}
+                            {printSettings.showPartCode && printSettings.posPartCode === 'TOP_RIGHT' && <div className="font-black truncate" style={{ fontSize: `${printSettings.fontSizePartCode}px` }}>{item.product.part_code}</div>}
+                            {printSettings.showLocation && printSettings.posLocation === 'TOP_RIGHT' && <div className="border-2 border-black px-1 rounded-sm font-bold truncate" style={{ fontSize: `${printSettings.fontSizeLocation}px` }}>{item.product.location}</div>}
+                            {printSettings.showProductName && printSettings.posProductName === 'TOP_RIGHT' && <div className="font-bold truncate" style={{ fontSize: `${printSettings.fontSizeProductName}px` }}>{item.product.product_name}</div>}
                         </div>
                     </div>
                     <div className="lbl-center">
@@ -353,9 +377,9 @@ const BarcodePrinterModal: React.FC<BarcodePrinterModalProps> = ({ isOpen, onClo
                     </div>
                     <div className="lbl-footer">
                         <div className="lbl-item-bottom">
-                            {printSettings.showPartCode && printSettings.posPartCode === 'BOTTOM' && <div className="font-black text-xs truncate">{item.product.part_code}</div>}
-                            {printSettings.showLocation && printSettings.posLocation === 'BOTTOM' && <div className="font-bold text-xs truncate">{item.product.location}</div>}
-                            {printSettings.showProductName && printSettings.posProductName === 'BOTTOM' && <div className="font-bold text-xs truncate">{item.product.product_name}</div>}
+                            {printSettings.showPartCode && printSettings.posPartCode === 'BOTTOM' && <div className="font-black truncate" style={{ fontSize: `${printSettings.fontSizePartCode}px` }}>{item.product.part_code}</div>}
+                            {printSettings.showLocation && printSettings.posLocation === 'BOTTOM' && <div className="font-bold truncate" style={{ fontSize: `${printSettings.fontSizeLocation}px` }}>{item.product.location}</div>}
+                            {printSettings.showProductName && printSettings.posProductName === 'BOTTOM' && <div className="font-bold truncate" style={{ fontSize: `${printSettings.fontSizeProductName}px` }}>{item.product.product_name}</div>}
                         </div>
                     </div>
                 </div>
