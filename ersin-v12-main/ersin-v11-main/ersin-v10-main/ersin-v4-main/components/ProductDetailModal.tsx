@@ -79,8 +79,23 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ isOpen, onClose
         .filter(t => t.type === TransactionType.OUT && new Date(t.date) >= thirtyDaysAgo)
         .reduce((sum, t) => sum + t.quantity, 0);
 
-      const totalIn = filtered.filter(t => t.type === TransactionType.IN).reduce((sum, t) => sum + t.quantity, 0);
-      const totalOut = filtered.filter(t => t.type === TransactionType.OUT).reduce((sum, t) => sum + t.quantity, 0);
+      const totalIn = filtered.reduce((sum, t) => {
+          if (t.type === TransactionType.IN) return sum + t.quantity;
+          if (t.type === TransactionType.CORRECTION && t.new_stock !== undefined && t.previous_stock !== undefined) {
+              const diff = t.new_stock - t.previous_stock;
+              return diff > 0 ? sum + diff : sum;
+          }
+          return sum;
+      }, 0);
+
+      const totalOut = filtered.reduce((sum, t) => {
+          if (t.type === TransactionType.OUT) return sum + t.quantity;
+          if (t.type === TransactionType.CORRECTION && t.new_stock !== undefined && t.previous_stock !== undefined) {
+              const diff = t.new_stock - t.previous_stock;
+              return diff < 0 ? sum + Math.abs(diff) : sum;
+          }
+          return sum;
+      }, 0);
 
       return {
           history: sorted.slice(0, 10),

@@ -527,7 +527,17 @@ function App() {
                              const tx = transactions.find(t => t.id === id);
                              if(tx) {
                                 if (confirm('Bu hareketi silmek ve stok miktarı düzeltmek istediğinize emin misiniz?')) {
-                                    const upProds = products.map(p => p.id === tx.product_id ? {...p, current_stock: p.current_stock - (tx.type === 'IN' ? tx.quantity : -tx.quantity)} : p);
+                                    let quantityToRevert = 0;
+                                    if (tx.type === TransactionType.IN) {
+                                        quantityToRevert = -tx.quantity;
+                                    } else if (tx.type === TransactionType.OUT) {
+                                        quantityToRevert = tx.quantity;
+                                    } else if (tx.type === TransactionType.CORRECTION && tx.new_stock !== undefined && tx.previous_stock !== undefined) {
+                                        // Revert correction by applying the opposite of the change
+                                        quantityToRevert = -(tx.new_stock - tx.previous_stock);
+                                    }
+
+                                    const upProds = products.map(p => p.id === tx.product_id ? {...p, current_stock: p.current_stock + quantityToRevert} : p);
                                     const upTx = transactions.filter(t => t.id !== id);
                                     saveData(upProds, upTx, orders);
                                     
@@ -599,16 +609,70 @@ function App() {
           isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingTransaction(null); }}
           initialType={modalType} products={products} transactionToEdit={editingTransaction} defaultBarcode={preSelectedBarcode} orders={orders}
           onSubmit={(data) => {
-              const prod = products.find(p => p.id === data.productId);
-              if(prod) {
-                  const change = data.type === 'IN' ? data.quantity : -data.quantity;
-                  const newStock = prod.current_stock + change;
-                  const newTx: Transaction = { id: data.id || `t-${generateId()}`, product_id: data.productId, product_name: prod.product_name, type: data.type, quantity: data.quantity, date: new Date().toISOString(), description: data.description, created_by: currentUser.name, previous_stock: prod.current_stock, new_stock: newStock };
-                  const upProds = products.map(p => p.id === data.productId ? {...p, current_stock: newStock} : p);
-                  const upTx = data.id ? transactions.map(t => t.id === data.id ? newTx : t) : [newTx, ...transactions];
-                  saveData(upProds, upTx, orders);
-                  setIsModalOpen(false);
+              let updatedProducts = [...products];
+              let updatedTransactions = [...transactions];
+              
+              if (data.id) {
+                  // EDITING EXISTING TRANSACTION
+                  const oldTx = transactions.find(t => t.id === data.id);
+                  if (!oldTx) return;
+
+                  // 1. Revert old transaction effect
+                  updatedProducts = updatedProducts.map(p => {
+                      if (p.id === oldTx.product_id) {
+                          const revertChange = oldTx.type === TransactionType.IN ? -oldTx.quantity : oldTx.quantity;
+                          return { ...p, current_stock: p.current_stock + revertChange };
+                      }
+                      return p;
+                  });
+
+                  // 2. Apply new transaction effect
+                  const product = updatedProducts.find(p => p.id === data.productId);
+                  if (product) {
+                      const newChange = data.type === TransactionType.IN ? data.quantity : -data.quantity;
+                      const finalStock = product.current_stock + newChange;
+                      
+                      const newTx: Transaction = {
+                          ...oldTx,
+                          product_id: data.productId,
+                          product_name: product.product_name,
+                          type: data.type,
+                          quantity: data.quantity,
+                          description: data.description,
+                          previous_stock: product.current_stock,
+                          new_stock: finalStock,
+                          date: new Date().toISOString() // Keep original date or update? Usually better to keep but UI might expect update.
+                      };
+
+                      updatedProducts = updatedProducts.map(p => p.id === data.productId ? { ...p, current_stock: finalStock } : p);
+                      updatedTransactions = transactions.map(t => t.id === data.id ? newTx : t);
+                  }
+              } else {
+                  // NEW TRANSACTION
+                  const product = products.find(p => p.id === data.productId);
+                  if (product) {
+                      const change = data.type === TransactionType.IN ? data.quantity : -data.quantity;
+                      const newStock = product.current_stock + change;
+                      const newTx: Transaction = {
+                          id: `t-${generateId()}`,
+                          product_id: data.productId,
+                          product_name: product.product_name,
+                          type: data.type,
+                          quantity: data.quantity,
+                          date: new Date().toISOString(),
+                          description: data.description,
+                          created_by: currentUser.name,
+                          previous_stock: product.current_stock,
+                          new_stock: newStock
+                      };
+                      updatedProducts = products.map(p => p.id === data.productId ? { ...p, current_stock: newStock } : p);
+                      updatedTransactions = [newTx, ...transactions];
+                  }
               }
+
+              saveData(updatedProducts, updatedTransactions, orders);
+              setIsModalOpen(false);
+              setEditingTransaction(null);
           }}
       />
       <ProductModal
