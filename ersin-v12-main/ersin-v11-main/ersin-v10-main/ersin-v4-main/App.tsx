@@ -353,7 +353,7 @@ function App() {
 
   if (!currentUser) return (
     <div className="h-screen w-full">
-      <Login onLogin={handleLogin} onQuickScan={() => setIsGlobalScannerOpen(true)} />
+      <Login onLogin={handleLogin} />
       {isGlobalScannerOpen && (
           <BarcodeScanner 
             onScanSuccess={(code) => {
@@ -374,7 +374,7 @@ function App() {
   );
 
   const MinimalSettingsBar = () => (
-    <div className="flex items-center justify-around gap-1 w-full bg-slate-100 dark:bg-slate-900/60 p-2 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-inner">
+    <div className="flex items-center justify-around gap-1 w-full bg-slate-100 dark:bg-slate-800 p-2 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-inner">
       <button onClick={handleCloudSync} disabled={isSyncing} title="Senkronize Et" className="p-2 rounded-xl text-emerald-500 hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm">
         <RefreshCw size={20} className={isSyncing ? 'animate-spin' : ''}/>
       </button>

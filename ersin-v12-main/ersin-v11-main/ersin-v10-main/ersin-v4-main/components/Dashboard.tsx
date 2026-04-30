@@ -71,7 +71,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-8 gap-3">
         <button onClick={onScan} className="flex flex-col items-center justify-center p-3 bg-blue-600 text-white rounded-2xl shadow-lg active:scale-95 aspect-square">
           <ScanLine size={26} className="mb-1" />
-          <span className="text-[10px] font-bold">QR TARA</span>
+          <span className="text-[10px] font-bold">BARKOD TARA</span>
         </button>
 
         {currentUser.role === 'ADMIN' && (

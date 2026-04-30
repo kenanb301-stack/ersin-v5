@@ -8,10 +8,9 @@ import { getDeviceId, getDeviceName } from '../utils/device';
 
 interface LoginProps {
   onLogin: (user: UserType, remember: boolean) => void;
-  onQuickScan?: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin, onQuickScan }) => {
+const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [mode, setMode] = useState<'ADMIN' | 'VIEWER'>('ADMIN');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -160,16 +159,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onQuickScan }) => {
                 <div className="mb-8 text-center">
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Hoşgeldiniz</h2>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">Devam etmek için giriş yöntemini seçin.</p>
-                    
-                    {onQuickScan && (
-                        <button 
-                            onClick={onQuickScan}
-                            className="w-full py-4 mb-2 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white rounded-2xl font-bold flex items-center justify-center gap-3 transition-all active:scale-[0.98] border border-slate-700/50 shadow-lg"
-                        >
-                            <ScanLine size={24} className="text-blue-400" />
-                            Hızlı Barkod Sorgula
-                        </button>
-                    )}
                 </div>
 
                 {/* MODE TABS */}
