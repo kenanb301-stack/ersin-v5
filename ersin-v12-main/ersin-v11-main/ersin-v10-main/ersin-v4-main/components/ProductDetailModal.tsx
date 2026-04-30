@@ -97,12 +97,25 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ isOpen, onClose
           return sum;
       }, 0);
 
+      // Check if history syncs with current stock
+      let calculatedSum = 0;
+      filtered.forEach(t => {
+          if (t.type === TransactionType.IN) calculatedSum += t.quantity;
+          else if (t.type === TransactionType.OUT) calculatedSum -= t.quantity;
+          else if (t.type === TransactionType.CORRECTION && t.new_stock !== undefined && t.previous_stock !== undefined) {
+              calculatedSum += (t.new_stock - t.previous_stock);
+          }
+      });
+      const isSyncError = calculatedSum !== selectedProduct.current_stock;
+
       return {
-          history: sorted.slice(0, 10),
+          history: sorted.slice(0, 20), // Show more
           monthlyConsumption,
           totalIn,
           totalOut,
-          lastMove: sorted[0]?.date
+          lastMove: sorted[0]?.date,
+          isSyncError,
+          calculatedSum
       };
   }, [selectedProduct, transactions]);
 
@@ -173,6 +186,23 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ isOpen, onClose
                                 <p className="text-sm text-red-700 dark:text-red-400 mt-1">
                                     Mevcut stok ({selectedProduct.current_stock}), minimum seviyenin ({selectedProduct.min_stock_level}) altında. 
                                     Acil sipariş veya üretim gereklidir.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* DISCREPANCY WARNING */}
+                    {productStats.isSyncError && (
+                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-xl flex items-start gap-4">
+                            <div className="bg-amber-100 dark:bg-amber-800 p-2 rounded-full text-amber-600 dark:text-amber-200">
+                                <RefreshCw size={24} className="animate-spin-slow" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-amber-800 dark:text-amber-300">Stok Uyuşmazlığı Tespit Edildi</h3>
+                                <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                                    Hesaplanan Stok: <span className="font-bold">{productStats.calculatedSum}</span> | Kayıtlı Stok: <span className="font-bold">{selectedProduct.current_stock}</span>
+                                    <br/>
+                                    Lütfen Güvenlik Merkezi'nden (ADMIN) "Stokları Yeniden Hesapla" butonunu kullanın.
                                 </p>
                             </div>
                         </div>

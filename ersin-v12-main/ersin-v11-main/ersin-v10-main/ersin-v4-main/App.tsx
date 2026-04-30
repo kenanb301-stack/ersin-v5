@@ -237,6 +237,50 @@ function App() {
       localStorage.removeItem('depopro_remembered_user');
   };
 
+  const handleRecalculateStocks = useCallback(() => {
+    let newTransactions = [...transactions];
+    const now = new Date().toISOString();
+
+    const updatedProducts = products.map(p => {
+      const productTxs = transactions.filter(t => t.product_id === p.id);
+      
+      if (productTxs.length === 0) {
+          if (p.current_stock > 0) {
+              // Handle legacy opening stock
+              newTransactions.unshift({
+                id: `t-${generateId()}`,
+                product_id: p.id,
+                product_name: p.product_name,
+                type: TransactionType.IN,
+                quantity: p.current_stock,
+                date: p.created_at || now,
+                description: 'SİSTEM AÇILIŞ STOĞU (OTOMATİK DÜZELTME)',
+                created_by: currentUser?.name || 'Sistem',
+                previous_stock: 0,
+                new_stock: p.current_stock
+              });
+              return p;
+          } else if (p.current_stock < 0) {
+              return { ...p, current_stock: 0 };
+          }
+          return p;
+      }
+
+      let calculatedStock = 0;
+      productTxs.forEach(tx => {
+        if (tx.type === TransactionType.IN) calculatedStock += tx.quantity;
+        else if (tx.type === TransactionType.OUT) calculatedStock -= tx.quantity;
+        else if (tx.type === TransactionType.CORRECTION && tx.new_stock !== undefined && tx.previous_stock !== undefined) {
+             calculatedStock += (tx.new_stock - tx.previous_stock);
+        }
+      });
+      
+      return { ...p, current_stock: calculatedStock };
+    });
+    
+    saveData(updatedProducts, newTransactions, orders);
+  }, [products, transactions, orders, saveData, currentUser]);
+
   const handleBulkImport = (data: any[], mode: 'PRODUCT' | 'TRANSACTION') => {
     const now = new Date().toISOString();
     let updatedProducts = [...products];
@@ -735,7 +779,7 @@ function App() {
         onUpdateOrderProgress={(id, picked) => saveData(products, transactions, orders.map(o => o.id === id ? {...o, picked_items: picked} : o), true)} 
         currentUser={currentUser} 
       />
-      <SecuritySettingsModal isOpen={isSecurityModalOpen} onClose={() => setIsSecurityModalOpen(false)} cloudConfig={cloudConfig} />
+      <SecuritySettingsModal isOpen={isSecurityModalOpen} onClose={() => setIsSecurityModalOpen(false)} cloudConfig={cloudConfig} onRecalculateStocks={handleRecalculateStocks} />
       <BulkImportModal isOpen={isBulkImportOpen} onClose={() => setIsBulkImportOpen(false)} onImport={handleBulkImport} existingProducts={products} />
       <InstallPrompt />
     </div>

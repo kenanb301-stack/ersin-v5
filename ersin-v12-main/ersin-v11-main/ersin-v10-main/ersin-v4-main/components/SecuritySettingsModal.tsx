@@ -9,9 +9,10 @@ interface SecuritySettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   cloudConfig: { supabaseUrl: string; supabaseKey: string } | null;
+  onRecalculateStocks?: () => void;
 }
 
-const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({ isOpen, onClose, cloudConfig }) => {
+const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({ isOpen, onClose, cloudConfig, onRecalculateStocks }) => {
   const [devices, setDevices] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -159,6 +160,31 @@ const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({ isOpen, o
             <p className="text-[11px] text-slate-500 leading-relaxed italic">
               * Listede bulunmayan veya "Yetki Ver" butonu tıklanmamış cihazlar, doğru şifre girilse dahi yönetici paneline erişemez.
             </p>
+          </section>
+
+          {/* MAINTENANCE SECTION */}
+          <section className="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-800">
+            <h3 className="text-sm font-black uppercase text-slate-400 flex items-center gap-2">
+              <RefreshCw size={16} /> Sistem Bakımı
+            </h3>
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
+                <div className="flex items-center justify-between gap-4">
+                    <div>
+                        <p className="text-sm font-bold dark:text-white">Stokları Yeniden Hesapla</p>
+                        <p className="text-xs text-slate-500">Mevcut stokları tüm işlem geçmişini tarayarak düzeltir. (Hatalı/Eksi stoklar için)</p>
+                    </div>
+                    <button 
+                        onClick={() => {
+                            if (confirm('Tüm ürünlerin stokları, işlem geçmişindeki giriş-çıkışlara göre sıfırdan hesaplanacaktır. Devam edilsin mi?')) {
+                                onRecalculateStocks?.();
+                            }
+                        }}
+                        className="p-3 bg-amber-100 text-amber-600 hover:bg-amber-200 dark:bg-amber-900/20 dark:text-amber-400 rounded-xl transition-all"
+                    >
+                        <RefreshCw size={20} />
+                    </button>
+                </div>
+            </div>
           </section>
         </div>
       </div>
