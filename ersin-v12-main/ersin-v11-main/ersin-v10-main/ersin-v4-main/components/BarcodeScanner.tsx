@@ -141,16 +141,28 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScanSuccess, onClose 
             );
 
             // Capabilities (Zoom/Torch)
-            try {
-                const capabilities = html5QrCode.getRunningTrackCameraCapabilities() as any;
-                if (capabilities) {
-                    if ('torch' in capabilities) setHasTorch(true);
-                    if ('zoom' in capabilities) {
-                        setZoomCap({ min: capabilities.zoom.min, max: capabilities.zoom.max });
-                        setZoom(capabilities.zoom.min);
+            const checkCapabilities = () => {
+                if (!isMounted.current || !html5QrCode.isScanning) return;
+                try {
+                    const capabilities = html5QrCode.getRunningTrackCameraCapabilities() as any;
+                    if (capabilities) {
+                        if ('torch' in capabilities) setHasTorch(true);
+                        if ('zoom' in capabilities) {
+                            setZoomCap({ 
+                                min: capabilities.zoom.min || 1, 
+                                max: capabilities.zoom.max || 1 
+                            });
+                            setZoom(capabilities.zoom.min || 1);
+                        }
                     }
+                } catch (e) {
+                    console.warn("Could not get camera capabilities:", e);
                 }
-            } catch (e) {}
+            };
+
+            // Delay capability check to ensure track is fully ready
+            setTimeout(checkCapabilities, 1500);
+            setTimeout(checkCapabilities, 3000); // Second check as fallback
 
         } catch (err: any) {
             console.error("Scanner Start Error:", err);
@@ -194,21 +206,53 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScanSuccess, onClose 
   }, [onScanSuccess]);
 
   // --- Torch & Zoom Handlers ---
-  const toggleTorch = () => {
+  const toggleTorch = async () => {
       if (scannerRef.current && hasTorch) {
-          const newStatus = !torchOn;
-          scannerRef.current.applyVideoConstraints({ advanced: [{ torch: newStatus }] } as any)
-            .then(() => setTorchOn(newStatus))
-            .catch(() => {});
+          try {
+              const newStatus = !torchOn;
+              // Attempt to apply via library
+              await scannerRef.current.applyVideoConstraints({ 
+                  advanced: [{ torch: newStatus }] 
+              } as any);
+              setTorchOn(newStatus);
+          } catch (err) {
+              console.error("Torch error:", err);
+              // Fallback: try to find the track manually if the library helper fails
+              try {
+                  const tracks = (scannerRef.current as any).qrCodeScanner?._videoStream?.getVideoTracks();
+                  if (tracks && tracks[0]) {
+                      await tracks[0].applyConstraints({ advanced: [{ torch: !torchOn }] } as any);
+                      setTorchOn(!torchOn);
+                  }
+              } catch (e) {}
+          }
       }
   };
 
+  const applyZoom = async (val: number) => {
+    if (!scannerRef.current || !zoomCap) return;
+    
+    // Clamp value
+    const clampedZoom = Math.min(Math.max(val, zoomCap.min), zoomCap.max);
+    setZoom(clampedZoom);
+    
+    try {
+        await scannerRef.current.applyVideoConstraints({ 
+            advanced: [{ zoom: clampedZoom }] 
+        } as any);
+    } catch (err) {
+        console.error("Zoom error:", err);
+    }
+  };
+
   const handleZoomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newZoom = Number(e.target.value);
-      setZoom(newZoom);
-      if (scannerRef.current) {
-          scannerRef.current.applyVideoConstraints({ advanced: [{ zoom: newZoom }] } as any).catch(() => {});
-      }
+      applyZoom(Number(e.target.value));
+  };
+
+  const setZoomPreset = (multiplier: number) => {
+      if (!zoomCap) return;
+      const target = zoomCap.min * multiplier;
+      applyZoom(target);
   };
 
   return (
@@ -296,19 +340,47 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScanSuccess, onClose 
 
                     {/* Zoom Control */}
                     {zoomCap && (
-                            <div className="absolute bottom-24 w-64 pointer-events-auto flex items-center gap-3 bg-black/60 p-3 rounded-2xl backdrop-blur-md border border-white/10 z-50">
-                            <ZoomOut size={16} className="text-white/70" />
-                            <input 
-                                type="range" 
-                                min={zoomCap.min} 
-                                max={zoomCap.max} 
-                                step="0.1" 
-                                value={zoom} 
-                                onChange={handleZoomChange}
-                                className="w-full h-1 bg-gray-500 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                            />
-                            <ZoomIn size={16} className="text-white/70" />
+                        <div className="absolute bottom-28 w-72 pointer-events-auto flex flex-col gap-4 z-50">
+                            {/* Zoom Presets */}
+                            <div className="flex justify-center gap-3">
+                                {[1, 2, 3].map((m) => {
+                                    const targetZoom = zoomCap.min * m;
+                                    if (targetZoom > zoomCap.max && m > 1) return null;
+                                    return (
+                                        <button
+                                            key={m}
+                                            onClick={() => setZoomPreset(m)}
+                                            className={`w-10 h-10 rounded-full border flex items-center justify-center text-[10px] font-black transition-all ${
+                                                Math.abs(zoom - targetZoom) < 0.1 
+                                                ? 'bg-blue-600 border-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]' 
+                                                : 'bg-black/60 border-white/20 text-white/70 backdrop-blur-md'
+                                            }`}
+                                        >
+                                            {m}x
+                                        </button>
+                                    );
+                                })}
                             </div>
+
+                            {/* Zoom Slider */}
+                            <div className="flex items-center gap-3 bg-black/60 p-3 rounded-2xl backdrop-blur-md border border-white/10">
+                                <button onClick={() => applyZoom(zoom - 0.5)} className="text-white/70 hover:text-white transition-colors">
+                                    <ZoomOut size={18} />
+                                </button>
+                                <input 
+                                    type="range" 
+                                    min={zoomCap.min} 
+                                    max={zoomCap.max} 
+                                    step="0.1" 
+                                    value={zoom} 
+                                    onChange={handleZoomChange}
+                                    className="w-full h-1.5 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                />
+                                <button onClick={() => applyZoom(zoom + 0.5)} className="text-white/70 hover:text-white transition-colors">
+                                    <ZoomIn size={18} />
+                                </button>
+                            </div>
+                        </div>
                     )}
                     
                     <div className="absolute bottom-10 px-6 py-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center gap-2">
