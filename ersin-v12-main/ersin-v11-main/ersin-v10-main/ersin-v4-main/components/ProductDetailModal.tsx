@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Package, Calendar, ArrowRightLeft, ArrowDownLeft, ArrowUpRight, MapPin, Hash, Barcode, History, AlertTriangle, Search, Activity, Layers, Copy, TrendingDown } from 'lucide-react';
-import { Product, Transaction, TransactionType } from '../types';
+import { Product, Transaction, TransactionType, User } from '../types';
 import BarcodeScanner from './BarcodeScanner';
 
 interface ProductDetailModalProps {
@@ -10,9 +10,11 @@ interface ProductDetailModalProps {
   products: Product[];
   transactions: Transaction[];
   initialProductId?: string;
+  currentUser?: User;
 }
 
-const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ isOpen, onClose, products, transactions, initialProductId }) => {
+const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ isOpen, onClose, products, transactions, initialProductId, currentUser }) => {
+  const isAdmin = currentUser?.role === 'ADMIN';
   const [showScanner, setShowScanner] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [error, setError] = useState('');
@@ -191,8 +193,8 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ isOpen, onClose
                         </div>
                     )}
 
-                    {/* DISCREPANCY WARNING */}
-                    {productStats.isSyncError && (
+                    {/* DISCREPANCY WARNING (ADMIN ONLY) */}
+                    {productStats.isSyncError && isAdmin && (
                         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-xl flex items-start gap-4">
                             <div className="bg-amber-100 dark:bg-amber-800 p-2 rounded-full text-amber-600 dark:text-amber-200">
                                 <RefreshCw size={24} className="animate-spin-slow" />

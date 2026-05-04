@@ -445,7 +445,7 @@ function App() {
                 setIsGlobalScannerOpen(false);
                 const product = products.find(p => String(p.short_id) === code.trim() || p.barcode === code.trim() || p.part_code === code.trim());
                 if (product) {
-                    if (confirm(`Ürün: ${product.product_name}\n\nTamam: İşlem Yap | İptal: Detay`)) {
+                    if (currentUser.role === 'ADMIN' && confirm(`Ürün: ${product.product_name}\n\nTamam: İşlem Yap | İptal: Detay`)) {
                         setPreSelectedBarcode(code);
                         setModalType(TransactionType.IN);
                         setIsModalOpen(true);
@@ -750,7 +750,7 @@ function App() {
               }
           }}
       />
-      <ProductDetailModal isOpen={isProductDetailOpen} onClose={() => setIsProductDetailOpen(false)} products={products} transactions={transactions} initialProductId={detailProductId || undefined} />
+      <ProductDetailModal isOpen={isProductDetailOpen} onClose={() => setIsProductDetailOpen(false)} products={products} transactions={transactions} initialProductId={detailProductId || undefined} currentUser={currentUser} />
       <DataBackupModal isOpen={isDataBackupOpen} onClose={() => setIsDataBackupOpen(false)} onBackup={() => generateAndDownloadExcel(products, transactions, 'Depo_Yedek')} onRestore={async (file) => {
             const reader = new FileReader();
             reader.onload = (e) => {

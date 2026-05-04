@@ -198,7 +198,7 @@ const OrderManagerModal: React.FC<OrderManagerModalProps> = ({
   }, [orders, products, findProduct]);
 
   const handlePickToggle = (item: any) => {
-      if (!activeOrder) return;
+      if (!activeOrder || !isAdmin) return;
       const key = item.part_code || item.product_name;
       const currentVal = activeOrder.picked_items?.[key] || 0;
       const newVal = currentVal >= item.required_qty ? 0 : item.required_qty;
@@ -320,11 +320,14 @@ const OrderManagerModal: React.FC<OrderManagerModalProps> = ({
                 <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors"><X size={24} className="text-slate-400"/></button>
             </div>
             <div className="flex border-b border-slate-200 dark:border-slate-700">
-                {['LIST', 'IMPORT', 'SHORTAGE', 'SIMULATION'].map(tab => (
-                    <button key={tab} onClick={() => setActiveTab(tab as TabType)} className={`flex-1 py-4 text-xs sm:text-sm font-bold border-b-2 transition-colors ${activeTab === tab ? 'border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-900/10' : 'border-transparent text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}>
-                        {tab === 'LIST' ? 'Siparişler' : tab === 'IMPORT' ? 'Excel Yükle' : tab === 'SHORTAGE' ? 'Eksik Listesi' : 'Simülasyon'}
-                    </button>
-                ))}
+                {['LIST', 'IMPORT', 'SHORTAGE', 'SIMULATION'].map(tab => {
+                    if (tab === 'IMPORT' && !isAdmin) return null;
+                    return (
+                        <button key={tab} onClick={() => setActiveTab(tab as TabType)} className={`flex-1 py-4 text-xs sm:text-sm font-bold border-b-2 transition-colors ${activeTab === tab ? 'border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-900/10' : 'border-transparent text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}>
+                            {tab === 'LIST' ? 'Siparişler' : tab === 'IMPORT' ? 'Excel Yükle' : tab === 'SHORTAGE' ? 'Eksik Listesi' : 'Simülasyon'}
+                        </button>
+                    );
+                })}
             </div>
 
             <div className="flex-1 overflow-hidden bg-slate-50 dark:bg-slate-900 flex flex-col">
@@ -355,7 +358,9 @@ const OrderManagerModal: React.FC<OrderManagerModalProps> = ({
                                             <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: order.status === 'PENDING' ? '#f97316' : order.status === 'COMPLETED' ? '#22c55e' : '#3b82f6' }}></div>
                                             <span className="text-[10px] font-black uppercase tracking-wider">{order.status === 'PENDING' ? 'Hazırlanıyor' : order.status === 'COMPLETED' ? 'Hazır' : 'Sevk Edildi'}</span>
                                         </div>
-                                        <button onClick={(e) => { e.stopPropagation(); if(confirm("Silmek istediğinize emin misiniz?")) onDeleteOrder(order.id); }} className="text-red-400 hover:text-red-600 p-2 rounded-lg transition-colors"><Trash2 size={16}/></button>
+                                        {isAdmin && (
+                                            <button onClick={(e) => { e.stopPropagation(); if(confirm("Silmek istediğinize emin misiniz?")) onDeleteOrder(order.id); }} className="text-red-400 hover:text-red-600 p-2 rounded-lg transition-colors"><Trash2 size={16}/></button>
+                                        )}
                                     </div>
                                 </div>
                             ))}

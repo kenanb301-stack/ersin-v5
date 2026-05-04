@@ -172,13 +172,54 @@ create policy "Public Access Settings" on app_settings for all using (true) with
                 </>
             )}
             {activeTab === 'SHARE' && (
-                <div className="flex flex-col items-center justify-center text-center space-y-6">
-                    {shareLink && (
-                        <div className="bg-white p-4 rounded-xl border-2 border-slate-200">
-                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareLink)}`} alt="QR" className="w-48 h-48" />
-                            <div className="mt-4 p-2 bg-slate-100 dark:bg-slate-700 rounded text-[10px] font-mono break-all">{shareLink}</div>
+                <div className="flex flex-col items-center justify-center text-center space-y-8 py-4">
+                    <div className="max-w-md w-full space-y-4">
+                        <div className="flex flex-col items-center gap-2">
+                            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-2xl text-blue-600 dark:text-blue-400">
+                                <QrCode size={32} />
+                            </div>
+                            <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">İzleyici Erişim Paneli</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Bu QR kodu okutarak personellerin sadece stokları görmesini sağlayabilirsiniz.</p>
                         </div>
-                    )}
+
+                        {shareLink ? (
+                            <div className="relative group">
+                                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                                <div className="relative bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xl flex flex-col items-center gap-6">
+                                    <div className="p-4 bg-white rounded-2xl shadow-inner border border-slate-50">
+                                        <img 
+                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(shareLink)}`} 
+                                            alt="QR" 
+                                            className="w-56 h-56" 
+                                        />
+                                    </div>
+                                    
+                                    <div className="w-full space-y-3">
+                                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                                            <div className="flex-1 text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate text-left">
+                                                {shareLink}
+                                            </div>
+                                            <button 
+                                                onClick={() => handleCopy(shareLink)}
+                                                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors text-blue-600"
+                                            >
+                                                {copied ? <CheckCircle size={18} /> : <Copy size={18} />}
+                                            </button>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 flex items-center justify-center gap-1">
+                                            <Zap size={10}/> Linki kopyalayıp WhatsApp üzerinden de paylaşabilirsiniz
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center gap-3">
+                                <AlertTriangle size={48} className="text-amber-500" />
+                                <p className="text-sm font-bold text-slate-600 dark:text-slate-400">Bağlantı Oluşturulamadı</p>
+                                <p className="text-xs text-slate-500">Lütfen önce Supabase ayarlarını tamamlayıp kaydedin.</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>
