@@ -89,7 +89,8 @@ export interface User {
 }
 
 export interface CloudConfig {
-  supabaseUrl: string;
-  supabaseKey: string;
+  supabaseUrl?: string;
+  supabaseKey?: string;
+  firebaseEnabled?: boolean;
   lastSync?: string;
 }

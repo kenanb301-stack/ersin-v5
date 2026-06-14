@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Package, ShieldCheck, Eye, ArrowRight, AlertTriangle, Lock, Cloud, Wifi, WifiOff, CheckCircle, ScanLine } from 'lucide-react';
 import { User as UserType } from '../types';
 import { verifyCredentials } from '../utils/security';
-import { loadAppSettings, registerDevice } from '../services/supabase';
+import { loadAppSettings, registerDevice } from '../services/firebase';
 import { getDeviceId, getDeviceName } from '../utils/device';
 
 interface LoginProps {
@@ -43,21 +43,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
           try {
               setSyncStatus('CHECKING');
-              const config = JSON.parse(cloudConfigStr);
-              if (config.supabaseUrl && config.supabaseKey) {
-                  const result = await loadAppSettings(config.supabaseUrl, config.supabaseKey);
-                  if (result.success && result.data && result.data['admin_password_hash']) {
-                      // Update local hash silently
-                      const cloudHash = result.data['admin_password_hash'];
-                      const localHash = localStorage.getItem('depopro_admin_hash');
-                      
-                      if (cloudHash !== localHash) {
-                          localStorage.setItem('depopro_admin_hash', cloudHash);
-                      }
-                      setSyncStatus('SYNCED');
-                  } else {
-                      setSyncStatus('OFFLINE'); // Connected but no hash found
+              const result = await loadAppSettings();
+              if (result.success && result.data && result.data['admin_password_hash']) {
+                  // Update local hash silently
+                  const cloudHash = result.data['admin_password_hash'];
+                  const localHash = localStorage.getItem('depopro_admin_hash');
+                  
+                  if (cloudHash !== localHash) {
+                      localStorage.setItem('depopro_admin_hash', cloudHash);
                   }
+                  setSyncStatus('SYNCED');
+              } else {
+                  setSyncStatus('OFFLINE'); // Connected but no hash found
               }
           } catch (e) {
               setSyncStatus('OFFLINE');
@@ -85,7 +82,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         // Proactively register/update device info so it appears in the admin panel
         if (cloudConfig) {
-            await registerDevice(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, deviceId, getDeviceName());
+            await registerDevice(deviceId, getDeviceName());
         }
 
         // Verify with device and cloud support

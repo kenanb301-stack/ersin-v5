@@ -1,0 +1,122 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Stock items stored in the warehouse",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique product ID" },
+        "product_name": { "type": "string", "description": "Product name or description" },
+        "part_code": { "type": "string", "description": "Part code like P-00003" },
+        "location": { "type": "string", "description": "Location or reyon like B1-06-06" },
+        "material": { "type": "string", "description": "Material type like ST37" },
+        "min_stock_level": { "type": "number", "description": "Minimum stock level threshold" },
+        "unit": { "type": "string", "description": "Unit of measurement (Adet, Takım, vb.)" },
+        "current_stock": { "type": "number", "description": "Quantity currently in stock" },
+        "barcode": { "type": "string", "description": "Barcode content" },
+        "short_id": { "type": "string", "description": "6-digit random numeric short ID" },
+        "created_at": { "type": "string", "description": "Creation timestamp in ISO format" },
+        "critical_since": { "type": "string", "description": "ISO timestamp since stock is critical" },
+        "last_alert_sent_at": { "type": "string", "description": "ISO timestamp of last alert mail" },
+        "last_counted_at": { "type": "string", "description": "ISO timestamp of last cycle count" }
+      },
+      "required": ["id", "product_name", "min_stock_level", "unit", "current_stock"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Log of stock entry, exit, or correction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique transaction ID" },
+        "product_id": { "type": "string", "description": "Referenced Product ID" },
+        "product_name": { "type": "string", "description": "Name of the product" },
+        "type": { "type": "string", "enum": ["IN", "OUT", "CORRECTION"], "description": "IN, OUT, or CORRECTION transaction type" },
+        "quantity": { "type": "number", "description": "Quantity transacted" },
+        "date": { "type": "string", "description": "ISO timestamp of transaction" },
+        "description": { "type": "string", "description": "Description note" },
+        "created_by": { "type": "string", "description": "User who created the transaction" },
+        "previous_stock": { "type": "number", "description": "Stock count before transaction" },
+        "new_stock": { "type": "number", "description": "Stock count after transaction" }
+      },
+      "required": ["id", "product_id", "type", "quantity", "date", "created_by"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Log of customer orders or shipments",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique order ID" },
+        "name": { "type": "string", "description": "Order name or client info" },
+        "status": { "type": "string", "enum": ["PENDING", "COMPLETED", "SHIPPED"], "description": "Order status" },
+        "created_at": { "type": "string", "description": "Order creation ISO date" },
+        "note": { "type": "string", "description": "Optional notes" },
+        "items": { "type": "array", "description": "List of ordered items" },
+        "picked_items": { "type": "object", "description": "Map of picked items counts" }
+      },
+      "required": ["id", "name", "status", "created_at", "items"]
+    },
+    "CycleCount": {
+      "title": "CycleCount",
+      "description": "Log of a full or location-based warehouse cycle count audit",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique audit record ID" },
+        "date": { "type": "string", "description": "ISO date of audit" },
+        "location": { "type": "string", "description": "Location being audited" },
+        "total_items": { "type": "number", "description": "Total items found in this location" },
+        "correct_items": { "type": "number", "description": "Correct counts matched" },
+        "accuracy": { "type": "number", "description": "Accuracy percentage (0 - 100)" },
+        "created_by": { "type": "string", "description": "User conducting the audit" }
+      },
+      "required": ["id", "date", "location", "total_items", "correct_items", "accuracy", "created_by"]
+    },
+    "AppSetting": {
+      "title": "AppSetting",
+      "description": "Global application configuration settings",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string", "description": "Setting key" },
+        "value": { "type": "string", "description": "Setting serialized value" }
+      },
+      "required": ["key", "value"]
+    },
+    "AuthorizedDevice": {
+      "title": "AuthorizedDevice",
+      "description": "Devices allowed to log in or access administrative controls",
+      "type": "object",
+      "properties": {
+        "device_id": { "type": "string", "description": "Unique client-side generated fingerprint ID" },
+        "device_name": { "type": "string", "description": "Custom name assigned to this device" },
+        "is_authorized": { "type": "boolean", "description": "Whether device is authorized to enter admin panel" },
+        "updated_at": { "type": "string", "description": "Last update timestamp" }
+      },
+      "required": ["device_id", "is_authorized"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of all items stored in the warehouse"
+    },
+    "/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Transaction logs for IN, OUT, and CORRECTION operations"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer orders that require picking or preparing"
+    },
+    "/cycle_counts/{cycleCountId}": {
+      "schema": "CycleCount",
+      "description": "Audit and cycle counting reports"
+    },
+    "/app_settings/{settingKey}": {
+      "schema": "AppSetting",
+      "description": "Global configuration overrides"
+    },
+    "/authorized_devices/{deviceId}": {
+      "schema": "AuthorizedDevice",
+      "description": "Devices allowed to carry out role actions"
+    }
+  }
+}

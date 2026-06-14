@@ -18,7 +18,7 @@ import InstallPrompt from './components/InstallPrompt';
 import BarcodePrinterModal from './components/BarcodePrinterModal';
 import SecuritySettingsModal from './components/SecuritySettingsModal';
 import BulkImportModal from './components/BulkImportModal';
-import { saveToSupabase, loadFromSupabase, checkDeviceAuthorization, deleteRecord } from './services/supabase';
+import { saveToFirebase as saveToSupabase, loadFromFirebase as loadFromSupabase, checkDeviceAuthorization, deleteRecord } from './services/firebase';
 import { getDeviceId } from './utils/device';
 import { generateAndDownloadExcel } from './utils/excelExport'; 
 import { INITIAL_PRODUCTS, INITIAL_TRANSACTIONS } from './constants';
@@ -106,7 +106,7 @@ function App() {
 
   // Auto-sync on mount
   useEffect(() => {
-    if (currentUser && cloudConfig?.supabaseUrl && cloudConfig?.supabaseKey) {
+    if (currentUser && cloudConfig) {
         handleCloudSync(true);
     }
   }, [currentUser]);
@@ -141,10 +141,9 @@ function App() {
       try {
         const decoded = atob(setupStr);
         const config = JSON.parse(decoded);
-        if (config.supabaseUrl && config.supabaseKey) {
+        if (config.firebaseEnabled || (config.supabaseUrl && config.supabaseKey)) {
             localStorage.setItem('depopro_cloud_config', JSON.stringify({
-                supabaseUrl: config.supabaseUrl,
-                supabaseKey: config.supabaseKey
+                firebaseEnabled: true
             }));
             if (config.restrictedMode) localStorage.setItem('depopro_device_restriction', 'true');
             if (config.autoLogin) {
@@ -198,23 +197,22 @@ function App() {
       localStorage.setItem('depopro_transactions', JSON.stringify(newTransactions));
       if (newOrders) localStorage.setItem('depopro_orders', JSON.stringify(newOrders));
       
-      if (cloudConfig?.supabaseUrl) {
-          const res = await saveToSupabase(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, newProducts, newTransactions, newOrders || orders);
+      if (cloudConfig) {
+          const res = await saveToSupabase(newProducts, newTransactions, newOrders || orders);
           if (!res.success && !silent) {
               console.error("Bulut Senkronizasyon Hatası:", res.message);
-              // alert("⚠️ Veriler buluta kaydedilemedi! Lütfen internet bağlantınızı ve Supabase ayarlarınızı kontrol edin.");
           }
       }
   }, [cloudConfig, orders]);
 
   const handleCloudSync = async (silent: boolean = false) => {
-    if (!cloudConfig?.supabaseUrl || !cloudConfig?.supabaseKey) {
+    if (!cloudConfig) {
         if (!silent) setIsCloudSetupOpen(true);
         return;
     }
     setIsSyncing(true);
     try {
-        const result = await loadFromSupabase(cloudConfig.supabaseUrl, cloudConfig.supabaseKey);
+        const result = await loadFromSupabase();
         if (result.success && result.data) {
             setProducts(result.data.products);
             setTransactions(result.data.transactions);
@@ -549,10 +547,8 @@ function App() {
                                 const updatedTransactions = transactions.filter(t => t.product_id !== id);
                                 saveData(updatedProducts, updatedTransactions, orders);
                                 
-                                if (cloudConfig?.supabaseUrl) {
-                                    await deleteRecord(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, 'products', id);
-                                    // Note: In Supabase, if CASCADE is not set, we might need to delete transactions too.
-                                    // For safety, let's assume we might need to handle it or have CASCADE in DB.
+                                if (cloudConfig) {
+                                    await deleteRecord('products', id);
                                 }
                             }
                         }}
@@ -585,8 +581,8 @@ function App() {
                                     const upTx = transactions.filter(t => t.id !== id);
                                     saveData(upProds, upTx, orders);
                                     
-                                    if (cloudConfig?.supabaseUrl) {
-                                        await deleteRecord(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, 'transactions', id);
+                                    if (cloudConfig) {
+                                        await deleteRecord('transactions', id);
                                     }
                                 }
                              }
@@ -617,7 +613,7 @@ function App() {
 
       <CloudSetupModal 
         isOpen={isCloudSetupOpen} onClose={() => setIsCloudSetupOpen(false)} 
-        onSave={(url, key) => { setCloudConfig({ supabaseUrl: url, supabaseKey: key }); localStorage.setItem('depopro_cloud_config', JSON.stringify({ supabaseUrl: url, supabaseKey: key })); window.location.reload(); }}
+        onSave={(url, key) => { setCloudConfig({ supabaseUrl: url, supabaseKey: key, firebaseEnabled: true }); localStorage.setItem('depopro_cloud_config', JSON.stringify({ supabaseUrl: url, supabaseKey: key, firebaseEnabled: true })); window.location.reload(); }}
         currentConfig={cloudConfig}
       />
       <AutoExportModal 
@@ -770,8 +766,8 @@ function App() {
         onDeleteOrder={async (id) => {
             if (confirm('Bu siparişi silmek istediğinize emin misiniz?')) {
                 saveData(products, transactions, orders.filter(o => o.id !== id));
-                if (cloudConfig?.supabaseUrl) {
-                    await deleteRecord(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, 'orders', id);
+                if (cloudConfig) {
+                    await deleteRecord('orders', id);
                 }
             }
         }} 

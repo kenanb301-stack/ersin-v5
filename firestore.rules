@@ -1,0 +1,102 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    
+    function incoming() { 
+      return request.resource.data; 
+    }
+    
+    function existing() { 
+      return resource.data; 
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // App Settings Collection
+    match /app_settings/{settingKey} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Authorized Devices Collection
+    match /authorized_devices/{deviceId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Products Collection
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update: if isValidProduct(incoming());
+      allow delete: if true;
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll(['id', 'product_name', 'min_stock_level', 'unit', 'current_stock']) &&
+             data.id is string &&
+             data.product_name is string && data.product_name.size() <= 300 &&
+             data.min_stock_level is number &&
+             data.unit is string &&
+             data.current_stock is number;
+    }
+
+    // Transactions Collection
+    match /transactions/{transactionId} {
+      allow read: if true;
+      allow create, update: if isValidTransaction(incoming());
+      allow delete: if true;
+    }
+
+    function isValidTransaction(data) {
+      return data.keys().hasAll(['id', 'product_id', 'type', 'quantity', 'date', 'created_by']) &&
+             data.id is string &&
+             data.product_id is string &&
+             data.type is string && (data.type == 'IN' || data.type == 'OUT' || data.type == 'CORRECTION') &&
+             data.quantity is number &&
+             data.date is string &&
+             data.created_by is string;
+    }
+
+    // Orders Collection
+    match /orders/{orderId} {
+      allow read: if true;
+      allow create, update: if isValidOrder(incoming());
+      allow delete: if true;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll(['id', 'name', 'status', 'created_at', 'items']) &&
+             data.id is string &&
+             data.name is string &&
+             data.status is string && (data.status == 'PENDING' || data.status == 'COMPLETED' || data.status == 'SHIPPED') &&
+             data.created_at is string &&
+             data.items is list;
+    }
+
+    // Cycle Counts Collection
+    match /cycle_counts/{cycleCountId} {
+      allow read: if true;
+      allow create, update: if isValidCycleCount(incoming());
+      allow delete: if true;
+    }
+
+    function isValidCycleCount(data) {
+      return data.keys().hasAll(['id', 'date', 'location', 'total_items', 'correct_items', 'accuracy', 'created_by']) &&
+             data.id is string &&
+             data.date is string &&
+             data.location is string &&
+             data.total_items is number &&
+             data.correct_items is number &&
+             data.accuracy is number &&
+             data.created_by is string;
+    }
+  }
+}

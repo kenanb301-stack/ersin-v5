@@ -1,14 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { Shield, Smartphone, CheckCircle, XCircle, Trash2, Key, RefreshCw, AlertCircle } from 'lucide-react';
-import { getAuthorizedDevices, updateDeviceAuthorization, saveAppSetting } from '../services/supabase';
+import { getAuthorizedDevices, updateDeviceAuthorization, saveAppSetting } from '../services/firebase';
 import { getDeviceId } from '../utils/device';
 import { hashPassword } from '../utils/security';
+import { CloudConfig } from '../types';
 
 interface SecuritySettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  cloudConfig: { supabaseUrl: string; supabaseKey: string } | null;
+  cloudConfig: CloudConfig | null;
   onRecalculateStocks?: () => void;
 }
 
@@ -28,7 +29,7 @@ const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({ isOpen, o
   const fetchDevices = async () => {
     if (!cloudConfig) return;
     setIsLoading(true);
-    const res = await getAuthorizedDevices(cloudConfig.supabaseUrl, cloudConfig.supabaseKey);
+    const res = await getAuthorizedDevices();
     if (res.success) {
       setDevices(res.data);
     }
@@ -38,7 +39,7 @@ const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({ isOpen, o
   const handleToggleAuth = async (deviceId: string, currentAuth: boolean) => {
     if (!cloudConfig || isLoading) return;
     setIsLoading(true);
-    const res = await updateDeviceAuthorization(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, deviceId, !currentAuth);
+    const res = await updateDeviceAuthorization(deviceId, !currentAuth);
     if (res.success) {
       await fetchDevices();
       setMessage({ type: 'success', text: `Cihaz yetkisi ${!currentAuth ? 'verildi' : 'kaldırıldı'}.` });
@@ -51,7 +52,7 @@ const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({ isOpen, o
     if (!cloudConfig || !newPassword) return;
     setIsLoading(true);
     const hash = await hashPassword(newPassword);
-    const res = await saveAppSetting(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, 'admin_password_hash', hash);
+    const res = await saveAppSetting('admin_password_hash', hash);
     if (res.success) {
       setMessage({ type: 'success', text: 'Yönetici şifresi başarıyla güncellendi!' });
       setNewPassword('');

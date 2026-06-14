@@ -1,6 +1,6 @@
 
 import { getDeviceId } from './device';
-import { loadAppSettings, checkDeviceAuthorization } from '../services/supabase';
+import { loadAppSettings, checkDeviceAuthorization } from '../services/firebase';
 
 /**
  * SECURITY UTILITIES
@@ -62,14 +62,14 @@ export const verifyCredentials = async (username: string, password: string, clou
         // 1. Check Device Authorization first if cloud is connected
         if (cloudConfig) {
             const deviceId = getDeviceId();
-            const authCheck = await checkDeviceAuthorization(cloudConfig.supabaseUrl, cloudConfig.supabaseKey, deviceId);
+            const authCheck = await checkDeviceAuthorization(deviceId);
             
             if (authCheck.success && !authCheck.authorized) {
                 return { success: false, message: "Bu cihaz yetkilendirilmemiş. Lütfen yönetici ile iletişime geçin." };
             }
 
-            // 2. Check Password Hash from Supabase
-            const settingsRes = await loadAppSettings(cloudConfig.supabaseUrl, cloudConfig.supabaseKey);
+            // 2. Check Password Hash from Firebase
+            const settingsRes = await loadAppSettings();
             if (settingsRes.success && settingsRes.data && settingsRes.data.admin_password_hash) {
                 return { success: inputHash === settingsRes.data.admin_password_hash };
             }

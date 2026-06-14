@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { X, Lock, Save, KeyRound, CheckCircle, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { verifyCredentials, validatePasswordStrength, setAdminPassword } from '../utils/security';
-import { saveAppSetting } from '../services/supabase';
+import { saveAppSetting } from '../services/firebase';
 import { CloudConfig } from '../types';
 
 interface AdminPasswordModalProps {
@@ -52,10 +52,8 @@ const AdminPasswordModal: React.FC<AdminPasswordModalProps> = ({ isOpen, onClose
         const newHash = await setAdminPassword(newPass);
 
         // 4. Save to Cloud (if connected)
-        if (cloudConfig?.supabaseUrl && cloudConfig?.supabaseKey) {
+        if (cloudConfig) {
             const result = await saveAppSetting(
-                cloudConfig.supabaseUrl, 
-                cloudConfig.supabaseKey, 
                 'admin_password_hash', 
                 newHash
             );
@@ -174,7 +172,7 @@ const AdminPasswordModal: React.FC<AdminPasswordModalProps> = ({ isOpen, onClose
                 Şifreyi Güncelle
             </button>
 
-            {cloudConfig?.supabaseUrl && (
+            {cloudConfig && (
                 <p className="text-[10px] text-center text-slate-400 mt-2">
                     Değişiklik, bulut üzerinden bağlı tüm cihazlarda geçerli olacaktır.
                 </p>
