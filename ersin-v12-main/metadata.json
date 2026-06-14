@@ -1,6 +1,6 @@
 {
   "name": "Omaks Depo",
-  "description": "Akıllı Stok ve Depo Yönetim Sistemi",
+  "description": "Akilli Stok ve Depo Yonetim Sistemi",
   "requestFramePermissions": [
     "camera"
   ]

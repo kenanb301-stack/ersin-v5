@@ -21,6 +21,7 @@ import BulkImportModal from './components/BulkImportModal';
 import { saveToFirebase as saveToSupabase, loadFromFirebase as loadFromSupabase, checkDeviceAuthorization, deleteRecord } from './services/firebase';
 import { getDeviceId } from './utils/device';
 import { generateAndDownloadExcel } from './utils/excelExport'; 
+import * as XLSX from 'xlsx';
 import { INITIAL_PRODUCTS, INITIAL_TRANSACTIONS } from './constants';
 import { Product, Transaction, TransactionType, ViewState, User, CloudConfig, Order, CycleCount } from './types';
 
@@ -749,13 +750,214 @@ function App() {
       <ProductDetailModal isOpen={isProductDetailOpen} onClose={() => setIsProductDetailOpen(false)} products={products} transactions={transactions} initialProductId={detailProductId || undefined} currentUser={currentUser} />
       <DataBackupModal isOpen={isDataBackupOpen} onClose={() => setIsDataBackupOpen(false)} onBackup={() => generateAndDownloadExcel(products, transactions, 'Depo_Yedek')} onRestore={async (file) => {
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 try {
                     const data = JSON.parse(e.target?.result as string);
-                    if (data.products) { setProducts(data.products); setTransactions(data.transactions || []); alert("Veriler yüklendi."); window.location.reload(); }
-                } catch(err) { alert("Format hatası."); }
+                    if (data.products) { 
+                        await saveData(data.products, data.transactions || [], data.orders || orders); 
+                        alert("Veriler başarıyla yüklendi ve bulut (Firebase) ile senkronize edildi!"); 
+                        window.location.reload(); 
+                    }
+                } catch(err) { alert("Format hatası: " + err); }
             };
             reader.readAsText(file);
+        }} onRestoreExcel={async (file) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const binaryStr = e.target?.result;
+                        const workbook = XLSX.read(binaryStr, { type: 'binary' });
+                        
+                        // 1. Ürünleri yükle (Guncel_Stok_Durumu)
+                        let stockSheet = workbook.Sheets["Guncel_Stok_Durumu"];
+                        if (!stockSheet) {
+                            const foundName = workbook.SheetNames.find(n => n.toLowerCase().includes('stok') || n.toLowerCase().includes('urun') || n.toLowerCase().includes('ürün') || n.toLowerCase().includes('guncel'));
+                            stockSheet = workbook.Sheets[foundName || workbook.SheetNames[0]];
+                        }
+                        
+                        if (!stockSheet) {
+                            throw new Error("Stok veya Ürün sayfası bulunamadı.");
+                        }
+                        
+                        const stockRows: any[] = XLSX.utils.sheet_to_json(stockSheet);
+                        if (stockRows.length === 0) {
+                            throw new Error("Stok verisi bulunamadı.");
+                        }
+                        
+                        const updatedProducts = [...products];
+                        
+                        for (const row of stockRows) {
+                            const rawPartCode = String(row["Parça Kodu"] || row["parca_kodu"] || row["part_code"] || row["Parça No"] || "").trim();
+                            const rawProductName = String(row["Ürün Adı"] || row["urun_adi"] || row["product_name"] || row["Açıklama"] || row["Açıklama / Parça Adı"] || "").trim();
+                            const rawLocation = String(row["Reyon"] || row["location"] || row["Raf"] || row["Reyon / Raf"] || "").trim();
+                            const rawCurrentStock = Number(row["Stoktaki Miktar"] || row["current_stock"] || row["Miktar"] || row["Mevcut Stok"] || row["Stok Miktarı"] || 0);
+                            const rawUnit = String(row["Birim"] || row["unit"] || "Adet").trim();
+                            const rawMaterial = String(row["Hammadde"] || row["material"] || row["Hammadde / Çeşit"] || "").trim();
+                            const rawBarcode = String(row["Barkod Kodu"] || row["barcode"] || row["Barkod"] || "").trim();
+                            
+                            if (!rawProductName && !rawPartCode) continue;
+                            const finalProductName = rawProductName || rawPartCode;
+                            
+                            const existingIdx = updatedProducts.findIndex(p => 
+                                (p.part_code && rawPartCode && p.part_code.trim().toLowerCase() === rawPartCode.toLowerCase()) ||
+                                (p.product_name.trim().toLowerCase() === finalProductName.toLowerCase())
+                            );
+                            
+                            if (existingIdx > -1) {
+                                updatedProducts[existingIdx] = {
+                                    ...updatedProducts[existingIdx],
+                                    product_name: finalProductName,
+                                    part_code: rawPartCode || updatedProducts[existingIdx].part_code,
+                                    location: rawLocation || updatedProducts[existingIdx].location,
+                                    material: rawMaterial || updatedProducts[existingIdx].material,
+                                    unit: rawUnit || updatedProducts[existingIdx].unit,
+                                    current_stock: rawCurrentStock,
+                                    barcode: rawBarcode || updatedProducts[existingIdx].barcode || updatedProducts[existingIdx].short_id,
+                                    is_synced: false
+                                };
+                            } else {
+                                const newId = `p-${generateId()}`;
+                                const newProduct: Product = {
+                                    id: newId,
+                                    product_name: finalProductName,
+                                    part_code: rawPartCode || undefined,
+                                    location: rawLocation || undefined,
+                                    material: rawMaterial || undefined,
+                                    unit: rawUnit,
+                                    current_stock: rawCurrentStock,
+                                    barcode: rawBarcode || undefined,
+                                    short_id: generateShortId(),
+                                    created_at: new Date().toISOString(),
+                                    is_synced: false
+                                };
+                                updatedProducts.push(newProduct);
+                            }
+                        }
+                        
+                        // 2. Hareketleri yükle (Giris_Islemleri / Cikis_Islemleri)
+                        let inboundSheet = workbook.Sheets["Giris_Islemleri"];
+                        let outboundSheet = workbook.Sheets["Cikis_Islemleri"];
+                        
+                        if (!inboundSheet) {
+                            const foundName = workbook.SheetNames.find(n => n.toLowerCase().includes('giris') || n.toLowerCase().includes('giriş') || n.toLowerCase().includes('input') || n.toLowerCase().includes('gelen'));
+                            if (foundName) inboundSheet = workbook.Sheets[foundName];
+                        }
+                        if (!outboundSheet) {
+                            const foundName = workbook.SheetNames.find(n => n.toLowerCase().includes('cikis') || n.toLowerCase().includes('çıkış') || n.toLowerCase().includes('output') || n.toLowerCase().includes('giden'));
+                            if (foundName) outboundSheet = workbook.Sheets[foundName];
+                        }
+                        
+                        const newTransactions = [...transactions];
+                        
+                        const parseExcelDate = (val: any) => {
+                            if (!val) return new Date().toISOString();
+                            try {
+                                if (val instanceof Date) return val.toISOString();
+                                if (typeof val === 'number') {
+                                    const d = new Date((val - 25569) * 86400 * 1000);
+                                    if (!isNaN(d.getTime())) return d.toISOString();
+                                }
+                                if (typeof val === 'string') {
+                                    const parts = val.split(' ');
+                                    if (parts[0]) {
+                                        const dParts = parts[0].split('.');
+                                        if (dParts.length === 3) {
+                                            const tParts = parts[1] ? parts[1].split(':') : ['00', '00', '00'];
+                                            const d = new Date(Number(dParts[2]), Number(dParts[1]) - 1, Number(dParts[0]), Number(tParts[0] || 0), Number(tParts[1] || 0), Number(tParts[2] || 0));
+                                            if (!isNaN(d.getTime())) return d.toISOString();
+                                        }
+                                    }
+                                    const parsed = Date.parse(val);
+                                    if (!isNaN(parsed)) return new Date(parsed).toISOString();
+                                }
+                            } catch(e) {}
+                            return new Date().toISOString();
+                        };
+                        
+                        // Process Inputs
+                        if (inboundSheet) {
+                            const rows: any[] = XLSX.utils.sheet_to_json(inboundSheet);
+                            for (const row of rows) {
+                                const rowPartCode = String(row["Parça Kodu"] || row["part_code"] || "").trim();
+                                const amount = Number(row["Miktar"] || row["quantity"] || 0);
+                                if (!rowPartCode || amount <= 0) continue;
+                                
+                                const prod = updatedProducts.find(p => p.part_code && p.part_code.toLowerCase() === rowPartCode.toLowerCase());
+                                if (prod) {
+                                    const txDate = parseExcelDate(row["İşlem Tarihi"] || row["Tarih"] || row["date"]);
+                                    const desc = String(row["Açıklama"] || row["description"] || "Excel Giriş Aktarımı").trim();
+                                    
+                                    const isDuplicate = transactions.some(t => 
+                                        t.product_id === prod.id && 
+                                        t.type === TransactionType.IN && 
+                                        t.quantity === amount && 
+                                        new Date(t.date).getTime() === new Date(txDate).getTime()
+                                    );
+                                    
+                                    if (!isDuplicate) {
+                                        newTransactions.unshift({
+                                            id: `t-${generateId()}`,
+                                            product_id: prod.id,
+                                            product_name: prod.product_name,
+                                            type: TransactionType.IN,
+                                            quantity: amount,
+                                            date: txDate,
+                                            description: desc,
+                                            created_by: currentUser?.name || 'Sistem'
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Process Outputs
+                        if (outboundSheet) {
+                            const rows: any[] = XLSX.utils.sheet_to_json(outboundSheet);
+                            for (const row of rows) {
+                                const rowPartCode = String(row["Parça Kodu"] || row["part_code"] || "").trim();
+                                const amount = Number(row["Miktar"] || row["quantity"] || 0);
+                                if (!rowPartCode || amount <= 0) continue;
+                                
+                                const prod = updatedProducts.find(p => p.part_code && p.part_code.toLowerCase() === rowPartCode.toLowerCase());
+                                if (prod) {
+                                    const txDate = parseExcelDate(row["İşlem Tarihi"] || row["Tarih"] || row["date"]);
+                                    const desc = String(row["Açıklama"] || row["description"] || "Excel Çıkış Aktarımı").trim();
+                                    
+                                    const isDuplicate = transactions.some(t => 
+                                        t.product_id === prod.id && 
+                                        t.type === TransactionType.OUT && 
+                                        t.quantity === amount && 
+                                        new Date(t.date).getTime() === new Date(txDate).getTime()
+                                    );
+                                    
+                                    if (!isDuplicate) {
+                                        newTransactions.unshift({
+                                            id: `t-${generateId()}`,
+                                            product_id: prod.id,
+                                            product_name: prod.product_name,
+                                            type: TransactionType.OUT,
+                                            quantity: amount,
+                                            date: txDate,
+                                            description: desc,
+                                            created_by: currentUser?.name || 'Sistem'
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                        
+                        await saveData(updatedProducts, newTransactions, orders);
+                        alert("Excel verileri başarıyla yüklendi, yeni ürünler oluşturuldu ve bulut ile senkronize edildi!");
+                        window.location.reload();
+                        resolve();
+                    } catch (err: any) {
+                        alert("Excel okuma hatası: " + err.message);
+                        reject(err);
+                    }
+                };
+                reader.readAsBinaryString(file);
+            });
         }} />
       <OrderManagerModal 
         isOpen={isOrderManagerOpen} 

@@ -1,5 +1,10 @@
 {
   "name": "Omaks Depo",
-  "description": "Profesyonel Stok Takip ve Depo Yönetim Uygulaması.",
-  "majorCapabilities": []
+  "description": "Profesyonel Stok Takip ve Depo Yonetim Uygulamasi.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
