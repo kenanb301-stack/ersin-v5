@@ -25,11 +25,17 @@ const getCollectionData = async (collectionName: string) => {
     return list;
 };
 
-// Helper to remove local-only fields like 'is_synced' before upload
+// Helper to remove local-only fields like 'is_synced' and undefined fields before upload
 const sanitizeForDb = (items: any[]) => {
     return items.map(item => {
         const { is_synced, ...rest } = item;
-        return rest;
+        const clean: any = {};
+        Object.keys(rest).forEach(key => {
+            if (rest[key] !== undefined) {
+                clean[key] = rest[key];
+            }
+        });
+        return clean;
     });
 };
 

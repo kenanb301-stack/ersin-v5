@@ -76,7 +76,13 @@ function App() {
 
   const [cloudConfig, setCloudConfig] = useState<CloudConfig | null>(() => {
       const saved = localStorage.getItem('depopro_cloud_config');
-      return saved ? JSON.parse(saved) : null;
+      if (saved) {
+          return JSON.parse(saved);
+      }
+      // Auto-activate Firebase by default since AI Studio has already created and linked the Firestore database
+      const defaultConfig = { supabaseUrl: 'firebase-enabled', supabaseKey: 'true', firebaseEnabled: true };
+      localStorage.setItem('depopro_cloud_config', JSON.stringify(defaultConfig));
+      return defaultConfig;
   });
 
   const [isAutoExportEnabled, setIsAutoExportEnabled] = useState(() => {
@@ -200,10 +206,15 @@ function App() {
       
       if (cloudConfig) {
           const res = await saveToSupabase(newProducts, newTransactions, newOrders || orders);
-          if (!res.success && !silent) {
-              console.error("Bulut Senkronizasyon Hatası:", res.message);
+          if (!res.success) {
+              if (!silent) {
+                  console.error("Bulut Senkronizasyon Hatası:", res.message);
+              }
+              return res;
           }
+          return res;
       }
+      return { success: true, message: 'Local' };
   }, [cloudConfig, orders]);
 
   const handleCloudSync = async (silent: boolean = false) => {
@@ -754,9 +765,13 @@ function App() {
                 try {
                     const data = JSON.parse(e.target?.result as string);
                     if (data.products) { 
-                        await saveData(data.products, data.transactions || [], data.orders || orders); 
-                        alert("Veriler başarıyla yüklendi ve bulut (Firebase) ile senkronize edildi!"); 
-                        window.location.reload(); 
+                        const syncRes = await saveData(data.products, data.transactions || [], data.orders || orders); 
+                        if (syncRes && !syncRes.success) {
+                            alert("Yerel veriler yüklendi fakat bulut eşitlemesi BAŞARISIZ oldu:\n" + syncRes.message);
+                        } else {
+                            alert("Veriler başarıyla yüklendi ve bulut (Firebase) ile senkronize edildi!"); 
+                            window.location.reload(); 
+                        }
                     }
                 } catch(err) { alert("Format hatası: " + err); }
             };
@@ -795,6 +810,7 @@ function App() {
                             const rawUnit = String(row["Birim"] || row["unit"] || "Adet").trim();
                             const rawMaterial = String(row["Hammadde"] || row["material"] || row["Hammadde / Çeşit"] || "").trim();
                             const rawBarcode = String(row["Barkod Kodu"] || row["barcode"] || row["Barkod"] || "").trim();
+                            const rawMinStock = Number(row["Min Stok"] || row["Kritik Stok"] || row["Kritik Seviye"] || row["min_stock_level"] || 0);
                             
                             if (!rawProductName && !rawPartCode) continue;
                             const finalProductName = rawProductName || rawPartCode;
@@ -813,6 +829,7 @@ function App() {
                                     material: rawMaterial || updatedProducts[existingIdx].material,
                                     unit: rawUnit || updatedProducts[existingIdx].unit,
                                     current_stock: rawCurrentStock,
+                                    min_stock_level: row["Min Stok"] !== undefined || row["Kritik Stok"] !== undefined || row["Kritik Seviye"] !== undefined || row["min_stock_level"] !== undefined ? rawMinStock : updatedProducts[existingIdx].min_stock_level,
                                     barcode: rawBarcode || updatedProducts[existingIdx].barcode || updatedProducts[existingIdx].short_id,
                                     is_synced: false
                                 };
@@ -824,6 +841,7 @@ function App() {
                                     part_code: rawPartCode || undefined,
                                     location: rawLocation || undefined,
                                     material: rawMaterial || undefined,
+                                    min_stock_level: rawMinStock,
                                     unit: rawUnit,
                                     current_stock: rawCurrentStock,
                                     barcode: rawBarcode || undefined,
@@ -947,9 +965,13 @@ function App() {
                             }
                         }
                         
-                        await saveData(updatedProducts, newTransactions, orders);
-                        alert("Excel verileri başarıyla yüklendi, yeni ürünler oluşturuldu ve bulut ile senkronize edildi!");
-                        window.location.reload();
+                        const syncRes = await saveData(updatedProducts, newTransactions, orders);
+                        if (syncRes && !syncRes.success) {
+                            alert("HATA: Excel verileri yüklendi fakat bulut (Firebase) ile senkronize EDİLEMEDİ!\n\nHata Detayı: " + syncRes.message);
+                        } else {
+                            alert("Excel verileri başarıyla yüklendi, yeni ürünler oluşturuldu ve bulut ile senkronize edildi!");
+                            window.location.reload();
+                        }
                         resolve();
                     } catch (err: any) {
                         alert("Excel okuma hatası: " + err.message);
