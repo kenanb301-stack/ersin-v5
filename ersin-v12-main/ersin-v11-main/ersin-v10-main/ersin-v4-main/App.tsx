@@ -803,6 +803,9 @@ function App() {
                         const updatedProducts = [...products];
                         
                         for (const row of stockRows) {
+                            // Support ALL variations of excel headers (old system, Supabase, new export, custom manual excels)
+                            const rawId = String(row["Sistem ID"] || row["sistem_id"] || row["Sistem_ID"] || row["ID"] || row["id"] || row["Ürün ID"] || row["Kayıt ID"] || "").trim();
+                            const rawShortId = String(row["Kısa Kod"] || row["kisa_kod"] || row["Kısa ID"] || row["kisa_id"] || row["short_id"] || row["Kısa No"] || "").trim();
                             const rawPartCode = String(row["Parça Kodu"] || row["parca_kodu"] || row["part_code"] || row["Parça No"] || "").trim();
                             const rawProductName = String(row["Ürün Adı"] || row["urun_adi"] || row["product_name"] || row["Açıklama"] || row["Açıklama / Parça Adı"] || "").trim();
                             const rawLocation = String(row["Reyon"] || row["location"] || row["Raf"] || row["Reyon / Raf"] || "").trim();
@@ -815,28 +818,57 @@ function App() {
                             if (!rawProductName && !rawPartCode) continue;
                             const finalProductName = rawProductName || rawPartCode;
                             
-                            const existingIdx = updatedProducts.findIndex(p => 
-                                (p.part_code && rawPartCode && p.part_code.trim().toLowerCase() === rawPartCode.toLowerCase()) ||
-                                (p.product_name.trim().toLowerCase() === finalProductName.toLowerCase())
-                            );
+                            // Multi-Level Hierarchical Match to absolutely avoid duplicate products
+                            let existingIdx = -1;
+                            
+                            // 1. Match by row Id (DB UUID/key from previous system/excel)
+                            if (rawId) {
+                                existingIdx = updatedProducts.findIndex(p => p.id === rawId);
+                            }
+                            // 2. Match by rawShortId (The 5-6 digit code matching printed barcode labels)
+                            if (existingIdx === -1 && rawShortId) {
+                                existingIdx = updatedProducts.findIndex(p => p.short_id && p.short_id.toLowerCase() === rawShortId.toLowerCase());
+                            }
+                            // 3. Match by rawBarcode (Check match with barcode OR short_id of existing)
+                            if (existingIdx === -1 && rawBarcode) {
+                                existingIdx = updatedProducts.findIndex(p => 
+                                    (p.barcode && p.barcode.toLowerCase() === rawBarcode.toLowerCase()) ||
+                                    (p.short_id && p.short_id.toLowerCase() === rawBarcode.toLowerCase()) ||
+                                    (p.id.toLowerCase() === rawBarcode.toLowerCase())
+                                );
+                            }
+                            // 4. Match by part code
+                            if (existingIdx === -1 && rawPartCode) {
+                                existingIdx = updatedProducts.findIndex(p => p.part_code && p.part_code.trim().toLowerCase() === rawPartCode.toLowerCase());
+                            }
+                            // 5. Match by exact product name
+                            if (existingIdx === -1 && finalProductName) {
+                                existingIdx = updatedProducts.findIndex(p => p.product_name.trim().toLowerCase() === finalProductName.toLowerCase());
+                            }
                             
                             if (existingIdx > -1) {
+                                // Match found! Retain existing keys but update data fields. Don't overwrite the original labels' keys.
                                 updatedProducts[existingIdx] = {
                                     ...updatedProducts[existingIdx],
-                                    product_name: finalProductName,
+                                    product_name: finalProductName || updatedProducts[existingIdx].product_name,
                                     part_code: rawPartCode || updatedProducts[existingIdx].part_code,
                                     location: rawLocation || updatedProducts[existingIdx].location,
                                     material: rawMaterial || updatedProducts[existingIdx].material,
                                     unit: rawUnit || updatedProducts[existingIdx].unit,
                                     current_stock: rawCurrentStock,
                                     min_stock_level: row["Min Stok"] !== undefined || row["Kritik Stok"] !== undefined || row["Kritik Seviye"] !== undefined || row["min_stock_level"] !== undefined ? rawMinStock : updatedProducts[existingIdx].min_stock_level,
-                                    barcode: rawBarcode || updatedProducts[existingIdx].barcode || updatedProducts[existingIdx].short_id,
+                                    barcode: rawBarcode || updatedProducts[existingIdx].barcode || rawShortId || updatedProducts[existingIdx].short_id,
+                                    short_id: rawShortId || updatedProducts[existingIdx].short_id || (rawBarcode && rawBarcode.length <= 15 ? rawBarcode : generateShortId()),
                                     is_synced: false
                                 };
                             } else {
-                                const newId = `p-${generateId()}`;
+                                // No match found. Create new, but preserve ANY existing IDs to let existing label tags continue scanning correctly.
+                                const finalId = rawId || `p-${generateId()}`;
+                                const finalShortId = rawShortId || (rawBarcode && rawBarcode.length <= 15 ? rawBarcode : generateShortId());
+                                const finalBarcode = rawBarcode || finalShortId;
+                                
                                 const newProduct: Product = {
-                                    id: newId,
+                                    id: finalId,
                                     product_name: finalProductName,
                                     part_code: rawPartCode || undefined,
                                     location: rawLocation || undefined,
@@ -844,8 +876,8 @@ function App() {
                                     min_stock_level: rawMinStock,
                                     unit: rawUnit,
                                     current_stock: rawCurrentStock,
-                                    barcode: rawBarcode || undefined,
-                                    short_id: generateShortId(),
+                                    barcode: finalBarcode,
+                                    short_id: finalShortId,
                                     created_at: new Date().toISOString(),
                                     is_synced: false
                                 };
@@ -893,15 +925,24 @@ function App() {
                             return new Date().toISOString();
                         };
                         
-                        // Process Inputs
+                        // Process Inputs with powerful product lookup fallbacks (id, name, short_id, part_code)
                         if (inboundSheet) {
                             const rows: any[] = XLSX.utils.sheet_to_json(inboundSheet);
                             for (const row of rows) {
                                 const rowPartCode = String(row["Parça Kodu"] || row["part_code"] || "").trim();
+                                const rowProdName = String(row["Ürün Adı"] || row["urun_adi"] || row["product_name"] || row["Açıklama"] || "").trim();
+                                const rowProdId = String(row["Sistem ID"] || row["sistem_id"] || row["Ürün ID"] || row["product_id"] || row["id"] || "").trim();
+                                const rowShortId = String(row["Kısa Kod"] || row["Kısa ID"] || row["short_id"] || "").trim();
                                 const amount = Number(row["Miktar"] || row["quantity"] || 0);
-                                if (!rowPartCode || amount <= 0) continue;
+                                if ((!rowPartCode && !rowProdName && !rowProdId && !rowShortId) || amount <= 0) continue;
                                 
-                                const prod = updatedProducts.find(p => p.part_code && p.part_code.toLowerCase() === rowPartCode.toLowerCase());
+                                const prod = updatedProducts.find(p => 
+                                    (rowProdId && p.id === rowProdId) ||
+                                    (rowShortId && p.short_id && p.short_id.toLowerCase() === rowShortId.toLowerCase()) ||
+                                    (rowPartCode && p.part_code && p.part_code.toLowerCase() === rowPartCode.toLowerCase()) ||
+                                    (rowProdName && p.product_name.toLowerCase() === rowProdName.toLowerCase())
+                                );
+                                
                                 if (prod) {
                                     const txDate = parseExcelDate(row["İşlem Tarihi"] || row["Tarih"] || row["date"]);
                                     const desc = String(row["Açıklama"] || row["description"] || "Excel Giriş Aktarımı").trim();
@@ -929,15 +970,24 @@ function App() {
                             }
                         }
                         
-                        // Process Outputs
+                        // Process Outputs with powerful product lookup fallbacks
                         if (outboundSheet) {
                             const rows: any[] = XLSX.utils.sheet_to_json(outboundSheet);
                             for (const row of rows) {
                                 const rowPartCode = String(row["Parça Kodu"] || row["part_code"] || "").trim();
+                                const rowProdName = String(row["Ürün Adı"] || row["urun_adi"] || row["product_name"] || row["Açıklama"] || "").trim();
+                                const rowProdId = String(row["Sistem ID"] || row["sistem_id"] || row["Ürün ID"] || row["product_id"] || row["id"] || "").trim();
+                                const rowShortId = String(row["Kısa Kod"] || row["Kısa ID"] || row["short_id"] || "").trim();
                                 const amount = Number(row["Miktar"] || row["quantity"] || 0);
-                                if (!rowPartCode || amount <= 0) continue;
+                                if ((!rowPartCode && !rowProdName && !rowProdId && !rowShortId) || amount <= 0) continue;
                                 
-                                const prod = updatedProducts.find(p => p.part_code && p.part_code.toLowerCase() === rowPartCode.toLowerCase());
+                                const prod = updatedProducts.find(p => 
+                                    (rowProdId && p.id === rowProdId) ||
+                                    (rowShortId && p.short_id && p.short_id.toLowerCase() === rowShortId.toLowerCase()) ||
+                                    (rowPartCode && p.part_code && p.part_code.toLowerCase() === rowPartCode.toLowerCase()) ||
+                                    (rowProdName && p.product_name.toLowerCase() === rowProdName.toLowerCase())
+                                );
+                                
                                 if (prod) {
                                     const txDate = parseExcelDate(row["İşlem Tarihi"] || row["Tarih"] || row["date"]);
                                     const desc = String(row["Açıklama"] || row["description"] || "Excel Çıkış Aktarımı").trim();

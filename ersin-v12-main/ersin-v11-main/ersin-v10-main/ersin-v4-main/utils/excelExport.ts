@@ -8,6 +8,8 @@ export const generateAndDownloadExcel = (products: Product[], transactions: Tran
     // İstenen Sütunlar: parça kodu , ürün adı , reyon, stoktaki miktar, birim, hammadde , barkod kodu
     const stockData = products.map(product => {
         return {
+            "Sistem ID": product.id,
+            "Kısa Kod": product.short_id || '-',
             "Parça Kodu": product.part_code || '-',
             "Ürün Adı": product.product_name,
             "Reyon": product.location || '-',
@@ -49,13 +51,15 @@ export const generateAndDownloadExcel = (products: Product[], transactions: Tran
     // Sayfa 1: Güncel Stok
     const wsStock = XLSX.utils.json_to_sheet(stockData);
     wsStock['!cols'] = [
+        { wch: 15 }, // Sistem ID
+        { wch: 12 }, // Kısa Kod
         { wch: 20 }, // Parça Kodu
         { wch: 40 }, // Ürün Adı
         { wch: 15 }, // Reyon
-        { wch: 15 }, // Miktar
+        { wch: 15 }, // Stoktaki Miktar
         { wch: 10 }, // Birim
         { wch: 25 }, // Hammadde
-        { wch: 20 }  // Barkod
+        { wch: 20 }  // Barkod Kodu
     ];
     XLSX.utils.book_append_sheet(wb, wsStock, "Guncel_Stok_Durumu");
 
