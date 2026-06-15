@@ -18,7 +18,7 @@ import InstallPrompt from './components/InstallPrompt';
 import BarcodePrinterModal from './components/BarcodePrinterModal';
 import SecuritySettingsModal from './components/SecuritySettingsModal';
 import BulkImportModal from './components/BulkImportModal';
-import { saveToFirebase as saveToSupabase, loadFromFirebase as loadFromSupabase, checkDeviceAuthorization, deleteRecord } from './services/firebase';
+import { saveToFirebase as saveToSupabase, loadFromFirebase as loadFromSupabase, checkDeviceAuthorization, deleteRecord, clearDatabase } from './services/firebase';
 import { getDeviceId } from './utils/device';
 import { generateAndDownloadExcel } from './utils/excelExport'; 
 import * as XLSX from 'xlsx';
@@ -1029,6 +1029,122 @@ function App() {
                     }
                 };
                 reader.readAsBinaryString(file);
+            });
+        }} onRestoreSupabaseCSV={async (file) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const text = e.target?.result as string;
+                        const workbook = XLSX.read(text, { type: 'string' });
+                        const sheetName = workbook.SheetNames[0];
+                        const sheet = workbook.Sheets[sheetName];
+                        if (!sheet) {
+                            throw new Error("CSV okunamadı veya boş.");
+                        }
+                        
+                        const csvRows: any[] = XLSX.utils.sheet_to_json(sheet);
+                        if (csvRows.length === 0) {
+                            throw new Error("CSV dosyasında veri satırı bulunamadı.");
+                        }
+
+                        const updatedProducts = [...products];
+                        const updatedTransactions = [...transactions];
+                        const updatedOrders = [...orders];
+                        let repairedCount = 0;
+
+                        for (const row of csvRows) {
+                            const oldId = String(row["id"] || row["ID"] || row["Sistem ID"] || row["sistem_id"] || "").trim();
+                            const oldShortId = String(row["short_id"] || row["Kısa Kod"] || row["Kısa ID"] || row["kisa_id"] || row["kisa_kod"] || "").trim();
+                            const oldPartCode = String(row["part_code"] || row["parca_kodu"] || row["Parça Kodu"] || row["Parça No"] || "").trim();
+                            const oldProductName = String(row["product_name"] || row["urun_adi"] || row["Ürün Adı"] || row["Açıklama"] || "").trim();
+                            const oldBarcode = String(row["barcode"] || row["Barkod Kodu"] || row["Barkod"] || "").trim();
+
+                            if (!oldProductName && !oldPartCode) continue;
+
+                            // Match existing product in current state
+                            let existingIdx = -1;
+                            if (oldPartCode) {
+                                existingIdx = updatedProducts.findIndex(p => p.part_code && p.part_code.trim().toLowerCase() === oldPartCode.toLowerCase());
+                            }
+                            if (existingIdx === -1 && oldProductName) {
+                                existingIdx = updatedProducts.findIndex(p => p.product_name && p.product_name.trim().toLowerCase() === oldProductName.toLowerCase());
+                            }
+                            
+                            if (existingIdx > -1) {
+                                const prod = updatedProducts[existingIdx];
+                                const currentId = prod.id;
+                                const targetId = oldId || currentId;
+                                const targetShortId = oldShortId || prod.short_id;
+                                const targetBarcode = oldBarcode || prod.barcode || targetShortId;
+
+                                // Update product attributes
+                                updatedProducts[existingIdx] = {
+                                    ...prod,
+                                    id: targetId,
+                                    short_id: targetShortId,
+                                    barcode: targetBarcode,
+                                    is_synced: false
+                                };
+                                repairedCount++;
+
+                                // Cascade product ID update to prevent breaking linkages
+                                if (currentId !== targetId) {
+                                    // 1. Transactions
+                                    for (let i = 0; i < updatedTransactions.length; i++) {
+                                        if (updatedTransactions[i].product_id === currentId) {
+                                            updatedTransactions[i] = {
+                                                ...updatedTransactions[i],
+                                                product_id: targetId,
+                                                is_synced: false
+                                            };
+                                        }
+                                    }
+                                    // 2. Orders
+                                    for (let i = 0; i < updatedOrders.length; i++) {
+                                        let itemsChanged = false;
+                                        const newItems = updatedOrders[i].items.map(item => {
+                                            if (item.matched_product_id === currentId) {
+                                                itemsChanged = true;
+                                                return { ...item, matched_product_id: targetId };
+                                            }
+                                            return item;
+                                        });
+                                        if (itemsChanged) {
+                                            updatedOrders[i] = {
+                                                ...updatedOrders[i],
+                                                items: newItems,
+                                                is_synced: false
+                                            };
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (repairedCount === 0) {
+                            throw new Error("Yüklenen CSV dosyasındaki hiçbir ürün adı veya parça kodu mevcut ürünlerinizle eşleşmedi. Lütfen doğru CSV dosyasını yüklediğinizden emin olun.");
+                        }
+
+                        // Wipe cloud database to remove duplicate entries with randomly generated IDs
+                        if (cloudConfig) {
+                            await clearDatabase();
+                        }
+
+                        const syncRes = await saveData(updatedProducts, updatedTransactions, updatedOrders);
+                        if (syncRes && !syncRes.success) {
+                            alert(`ID Verileri yerelde onarıldı (${repairedCount} adet ürün), fakat bulut ile senkronize EDİLEMEDİ:\n\n` + syncRes.message);
+                        } else {
+                            alert(`🎉 BAŞARILI! Toplam ${repairedCount} adet ürünün Sistem ID'si, Kısa Kodları ve Barkodları başarıyla eski Supabase değerleriyle onarıldı. Artık basılmış durumdaki tüm eski raf/koli barkod etiketleriniz sorunsuz çalışacaktır!`);
+                            window.location.reload();
+                        }
+                        resolve();
+                    } catch (err: any) {
+                        alert("CSV Kurtarma Hatası: " + err.message);
+                        reject(err);
+                    }
+                };
+                reader.readAsText(file, 'utf-8');
             });
         }} />
       <OrderManagerModal 

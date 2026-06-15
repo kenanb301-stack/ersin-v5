@@ -8,15 +8,19 @@ interface DataBackupModalProps {
   onBackup: () => void;
   onRestore: (file: File) => Promise<void>;
   onRestoreExcel: (file: File) => Promise<void>;
+  onRestoreSupabaseCSV?: (file: File) => Promise<void>;
 }
 
-const DataBackupModal: React.FC<DataBackupModalProps> = ({ isOpen, onClose, onBackup, onRestore, onRestoreExcel }) => {
+const DataBackupModal: React.FC<DataBackupModalProps> = ({ isOpen, onClose, onBackup, onRestore, onRestoreExcel, onRestoreSupabaseCSV }) => {
   const [isRestoring, setIsRestoring] = useState(false);
   const [isRestoringExcel, setIsRestoringExcel] = useState(false);
+  const [isRestoringCSV, setIsRestoringCSV] = useState(false);
   const [restoreStatus, setRestoreStatus] = useState<'IDLE' | 'SUCCESS' | 'ERROR'>('IDLE');
   const [excelStatus, setExcelStatus] = useState<'IDLE' | 'SUCCESS' | 'ERROR'>('IDLE');
+  const [csvStatus, setCsvStatus] = useState<'IDLE' | 'SUCCESS' | 'ERROR'>('IDLE');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const excelInputRef = useRef<HTMLInputElement>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
@@ -73,6 +77,36 @@ const DataBackupModal: React.FC<DataBackupModalProps> = ({ isOpen, onClose, onBa
     } finally {
         setIsRestoringExcel(false);
         if(excelInputRef.current) excelInputRef.current.value = '';
+    }
+  };
+
+  const handleCSVChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!confirm("DİKKAT: Yükleyeceğiniz Supabase CSV dosyası ile mevcut ürünlerinizin Barkod, Kısa Barkod Kodları ve Sistem ID'leri eski sisteminizle eşleşecek şekilde güncellenecektir. Mevcut stoklarınız ve hareketleriniz aynen korunacaktır. Devam etmek istiyor musunuz?")) {
+        e.target.value = ''; // Reset input
+        return;
+    }
+
+    setIsRestoringCSV(true);
+    setCsvStatus('IDLE');
+
+    try {
+        if (onRestoreSupabaseCSV) {
+            await onRestoreSupabaseCSV(file);
+            setCsvStatus('SUCCESS');
+            setTimeout(() => {
+                onClose();
+                setCsvStatus('IDLE');
+            }, 1500);
+        }
+    } catch (error) {
+        console.error(error);
+        setCsvStatus('ERROR');
+    } finally {
+        setIsRestoringCSV(false);
+        if(csvInputRef.current) csvInputRef.current.value = '';
     }
   };
 
@@ -179,6 +213,48 @@ const DataBackupModal: React.FC<DataBackupModalProps> = ({ isOpen, onClose, onBa
                     </span>
                 </button>
             </div>
+
+            {/* Supabase ID Recovery Separator & Block */}
+            {onRestoreSupabaseCSV && (
+                <div className="border-t border-slate-100 dark:border-slate-700 pt-6 mt-6">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-5 bg-amber-50 dark:bg-amber-950/20 border-2 border-dashed border-amber-300 dark:border-amber-800 rounded-2xl gap-4">
+                        <div className="space-y-1">
+                            <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300">
+                                Supabase Kurtarma Aracı
+                            </span>
+                            <h3 className="text-base font-bold text-slate-800 dark:text-white">
+                                Eski Raf Etiketlerini ve Barkod ID'lerini Kurtarın
+                            </h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xl">
+                                Excel yükledikten sonra barkod ID'leriniz değiştiyse ve eski basılan etiketleriniz çalışmıyorsa; Supabase'den indirdiğiniz <strong>ürün tablosu CSV dosyasını</strong> buraya yükleyin. Parça kodu/Ürün adına göre eski ID ve barkod numaralarınız anında onarılacaktır!
+                            </p>
+                        </div>
+                        
+                        <button
+                            type="button"
+                            onClick={() => csvInputRef.current?.click()}
+                            disabled={isRestoring || isRestoringExcel || isRestoringCSV}
+                            className="flex items-center gap-2 px-5 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-all shadow-md shadow-amber-600/10 hover:shadow-lg disabled:opacity-50 whitespace-nowrap"
+                        >
+                            <input 
+                                type="file" 
+                                ref={csvInputRef}
+                                onChange={handleCSVChange}
+                                accept=".csv"
+                                className="hidden"
+                            />
+                            {isRestoringCSV ? (
+                                <RefreshCw size={18} className="animate-spin" />
+                            ) : csvStatus === 'SUCCESS' ? (
+                                <CheckCircle size={18} />
+                            ) : (
+                                <RefreshCw size={18} />
+                            )}
+                            {isRestoringCSV ? 'Onarılıyor...' : csvStatus === 'SUCCESS' ? 'Onarıldı!' : 'Supabase CSV Yükle'}
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
       </div>
     </div>
