@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Shield, Smartphone, CheckCircle, XCircle, Trash2, Key, RefreshCw, AlertCircle } from 'lucide-react';
-import { getAuthorizedDevices, updateDeviceAuthorization, saveAppSetting } from '../services/firebase';
+import { getAuthorizedDevices, updateDeviceAuthorization, saveAppSetting, deleteDevice } from '../services/firebase';
 import { getDeviceId } from '../utils/device';
 import { hashPassword } from '../utils/security';
 import { CloudConfig } from '../types';
@@ -43,6 +43,25 @@ const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({ isOpen, o
     if (res.success) {
       await fetchDevices();
       setMessage({ type: 'success', text: `Cihaz yetkisi ${!currentAuth ? 'verildi' : 'kaldırıldı'}.` });
+      setTimeout(() => setMessage(null), 3000);
+    }
+    setIsLoading(false);
+  };
+
+  const handleDeleteDevice = async (deviceId: string, deviceName: string) => {
+    if (!cloudConfig || isLoading) return;
+    if (!confirm(`"${deviceName || 'Bilinmeyen Cihaz'}" isimli cihazı yetkili cihazlar listesinden tamamen silmek istiyor musunuz?`)) {
+      return;
+    }
+    
+    setIsLoading(true);
+    const res = await deleteDevice(deviceId);
+    if (res.success) {
+      await fetchDevices();
+      setMessage({ type: 'success', text: 'Cihaz listeden başarıyla silindi.' });
+      setTimeout(() => setMessage(null), 3000);
+    } else {
+      setMessage({ type: 'error', text: 'Cihaz silinirken hata oluştu.' });
       setTimeout(() => setMessage(null), 3000);
     }
     setIsLoading(false);
@@ -120,46 +139,97 @@ const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({ isOpen, o
                <h3 className="text-sm font-black uppercase text-slate-400 flex items-center gap-2">
                 <Smartphone size={16} /> Yetkili Cihazlar
               </h3>
-              <button onClick={fetchDevices} className="text-blue-600 dark:text-blue-400 p-1 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all">
-                <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+              <button 
+                onClick={fetchDevices} 
+                disabled={isLoading}
+                className="text-blue-600 dark:text-blue-400 p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all disabled:opacity-50 flex items-center gap-1.5 text-xs font-bold"
+              >
+                <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+                Yenile
               </button>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               {devices.length === 0 ? (
-                <div className="text-center py-10 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400">
-                  Kayıtlı cihaz bekleyen istek yok.
+                <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-slate-400">
+                  <Smartphone size={32} className="mx-auto mb-2 opacity-30 text-slate-400" />
+                  <p className="text-sm font-medium">Kayıtlı cihaz veya yetki bekleyen istek bulunamadı.</p>
+                  <p className="text-xs text-slate-400 mt-1">Sisteme girmek isteyen mobil cihazlar burada görünür.</p>
                 </div>
               ) : (
-                devices.map(device => (
-                  <div key={device.device_id} className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${device.device_id === currentDeviceId ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-slate-900' : 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30'}`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-xl ${device.is_authorized ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'}`}>
-                        <Smartphone size={20} />
-                      </div>
-                      <div>
-                        <div className="font-bold text-sm dark:text-white flex items-center gap-2">
-                          {device.device_name}
-                          {device.device_id === currentDeviceId && <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">BU CİHAZ</span>}
+                devices.map(device => {
+                  const isCurrent = device.device_id === currentDeviceId;
+                  return (
+                    <div 
+                      key={device.device_id} 
+                      className={`flex flex-col sm:flex-row sm:items-center justify-between p-4.5 rounded-2xl border transition-all gap-4 ${
+                        isCurrent 
+                          ? 'border-blue-200 dark:border-blue-900 bg-blue-50/40 dark:bg-blue-950/10 ring-1 ring-blue-400/30' 
+                          : 'border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-800/40'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3.5">
+                        <div className={`p-3 rounded-2xl ${
+                          device.is_authorized 
+                            ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400' 
+                            : 'bg-amber-50 text-amber-600 dark:bg-amber-950/20 dark:text-amber-400'
+                        }`}>
+                          <Smartphone size={22} />
                         </div>
-                        <div className="text-[10px] text-slate-400 font-mono">ID: ...{device.device_id.slice(-8)}</div>
+                        <div className="space-y-1">
+                          <div className="flex items-center flex-wrap gap-2">
+                            <span className="font-bold text-sm text-slate-800 dark:text-slate-100">
+                              {device.device_name || 'Bilinmeyen Cihaz'}
+                            </span>
+                            {isCurrent && (
+                              <span className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                                Bu Cihaz
+                              </span>
+                            )}
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                              device.is_authorized 
+                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' 
+                                : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+                            }`}>
+                              {device.is_authorized ? 'Yetkili' : 'Yetki Bekliyor'}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 font-mono">
+                            <span>ID: {device.device_id}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-end gap-2 sm:self-center">
+                        <button 
+                          onClick={() => handleToggleAuth(device.device_id, device.is_authorized)}
+                          disabled={isLoading}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                            device.is_authorized 
+                              ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300' 
+                              : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/10'
+                          } disabled:opacity-50`}
+                        >
+                          {device.is_authorized ? 'Yetkiyi Kaldır' : 'Yetki Ver'}
+                        </button>
+                        
+                        <button 
+                          onClick={() => handleDeleteDevice(device.device_id, device.device_name)}
+                          disabled={isLoading}
+                          title="Cihazı Tamamen Sil"
+                          className="p-2 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/20 dark:text-red-400 dark:hover:bg-red-900/30 rounded-xl transition-all disabled:opacity-50"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => handleToggleAuth(device.device_id, device.is_authorized)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${device.is_authorized ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-600 text-white hover:bg-green-700'}`}
-                      >
-                        {device.is_authorized ? 'Yetkiyi Kaldır' : 'Yetki Ver'}
-                      </button>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
-            <p className="text-[11px] text-slate-500 leading-relaxed italic">
-              * Listede bulunmayan veya "Yetki Ver" butonu tıklanmamış cihazlar, doğru şifre girilse dahi yönetici paneline erişemez.
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed italic">
+              * Listede bulunmayan veya "Yetki Ver" butonu tıklanmamış mobil cihazlar, doğru yönetici şifresini girseler dahi paneli kullanamazlar.
             </p>
           </section>
 

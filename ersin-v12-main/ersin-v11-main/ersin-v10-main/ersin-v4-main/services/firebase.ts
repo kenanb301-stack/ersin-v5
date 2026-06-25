@@ -219,3 +219,14 @@ export const updateDeviceAuthorization = async (deviceId: string, isAuthorized: 
         return { success: false }; 
     }
 };
+
+export const deleteDevice = async (deviceId: string) => {
+    try {
+        await deleteDoc(doc(db, 'authorized_devices', deviceId));
+        return { success: true };
+    } catch (e: any) {
+        console.error("Cihaz Silme Hatası:", e);
+        return { success: false };
+    }
+};
+
