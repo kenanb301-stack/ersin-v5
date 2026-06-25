@@ -157,11 +157,15 @@ export const saveAppSetting = async (settingKey: string, settingValue: string) =
     }
 };
 
-export const checkDeviceAuthorization = async (deviceId: string, hardwareFingerprint?: string) => {
+export const checkDeviceAuthorization = async (deviceId: string, hardwareFingerprint?: string, ipAddress?: string) => {
     try {
         // 1. First, check if there is an authorized device with the exact deviceId
         const docSnap = await getDoc(doc(db, 'authorized_devices', deviceId));
         if (docSnap.exists() && docSnap.data().is_authorized) {
+            // Update its IP address if it has changed
+            if (ipAddress && docSnap.data().ip_address !== ipAddress) {
+                await setDoc(doc(db, 'authorized_devices', deviceId), { ip_address: ipAddress, updated_at: new Date().toISOString() }, { merge: true });
+            }
             return { success: true, authorized: true };
         }
 
@@ -182,6 +186,29 @@ export const checkDeviceAuthorization = async (deviceId: string, hardwareFingerp
                 // Save this matched authorized deviceId to local storage so future calls use it directly
                 localStorage.setItem('depopro_device_id', matchedDeviceId);
                 
+                // Also update its IP if provided
+                if (ipAddress) {
+                    await setDoc(doc(db, 'authorized_devices', matchedDeviceId), { ip_address: ipAddress, updated_at: new Date().toISOString() }, { merge: true });
+                }
+                
+                return { success: true, authorized: true, adoptedDeviceId: matchedDeviceId };
+            }
+        }
+
+        // 3. Check if there is an authorized device with the exact same IP Address
+        if (ipAddress && ipAddress !== "Bilinmeyen IP") {
+            const q = query(
+                collection(db, 'authorized_devices'),
+                where('ip_address', '==', ipAddress),
+                where('is_authorized', '==', true)
+            );
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                // Adopt the matched authorized device ID!
+                const matchedDoc = querySnapshot.docs[0];
+                const matchedDeviceId = matchedDoc.data().device_id;
+                
+                localStorage.setItem('depopro_device_id', matchedDeviceId);
                 return { success: true, authorized: true, adoptedDeviceId: matchedDeviceId };
             }
         }
@@ -196,22 +223,28 @@ export const checkDeviceAuthorization = async (deviceId: string, hardwareFingerp
     }
 };
 
-export const registerDevice = async (deviceId: string, deviceName: string, hardwareFingerprint?: string) => {
+export const registerDevice = async (deviceId: string, deviceName: string, hardwareFingerprint?: string, ipAddress?: string) => {
     try {
         const docRef = doc(db, 'authorized_devices', deviceId);
         const docSnap = await getDoc(docRef);
 
+        const dataToSave: any = {
+            device_name: deviceName,
+            hardware_fingerprint: hardwareFingerprint || "",
+            updated_at: new Date().toISOString()
+        };
+        if (ipAddress) {
+            dataToSave.ip_address = ipAddress;
+        }
+
         if (docSnap.exists()) {
-            await setDoc(docRef, { 
-                device_name: deviceName,
-                hardware_fingerprint: hardwareFingerprint || "",
-                updated_at: new Date().toISOString()
-            }, { merge: true });
+            await setDoc(docRef, dataToSave, { merge: true });
         } else {
             await setDoc(docRef, { 
                 device_id: deviceId, 
                 device_name: deviceName,
                 hardware_fingerprint: hardwareFingerprint || "",
+                ip_address: ipAddress || "",
                 is_authorized: false,
                 updated_at: new Date().toISOString()
             });

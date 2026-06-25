@@ -51,6 +51,7 @@ interface GroupedSession {
   is_authorized: boolean;
   updated_at: string;
   is_current: boolean;
+  ip_address?: string;
 }
 
 interface GroupedDevice {
@@ -115,7 +116,8 @@ const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({ isOpen, o
         browser: parsed.browser,
         is_authorized: !!dev.is_authorized,
         updated_at: dev.updated_at || '',
-        is_current: isCurrent
+        is_current: isCurrent,
+        ip_address: dev.ip_address || ''
       });
     });
 
@@ -343,6 +345,12 @@ const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({ isOpen, o
                                   </div>
                                   <div className="flex flex-wrap items-center gap-x-2 text-[10px] text-slate-400 dark:text-slate-500 font-mono">
                                     <span>ID: ...{session.device_id.slice(-8)}</span>
+                                    {session.ip_address && (
+                                      <>
+                                        <span className="opacity-40">•</span>
+                                        <span className="bg-slate-100 dark:bg-slate-800/80 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300">IP: {session.ip_address}</span>
+                                      </>
+                                    )}
                                     {session.updated_at && (
                                       <>
                                         <span className="opacity-40">•</span>
@@ -392,13 +400,23 @@ const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({ isOpen, o
                 })
               )}
             </div>
-            <div className="bg-blue-50/50 dark:bg-blue-950/10 border border-blue-100 dark:border-blue-900/40 p-4 rounded-2xl text-[11px] text-blue-700 dark:text-blue-300 leading-relaxed space-y-1">
-              <p className="font-bold flex items-center gap-1.5 text-blue-800 dark:text-blue-200 text-xs">
-                <Shield size={14} /> Donanımsal Akıllı Eşleştirme Sistemi
-              </p>
-              <p>
-                Bir fiziksel cihazın herhangi bir tarayıcısına (örneğin Chrome) yetki verilmesi, o cihazdaki diğer tüm tarayıcıların (örneğin Firefox, Safari) donanımsal özellikleri sayesinde otomatik olarak güvenli şekilde tanınmasını sağlar. Tarayıcı farklarından ötürü ayrı ayrı onaylama yapmanıza gerek kalmaz.
-              </p>
+            <div className="bg-blue-50/50 dark:bg-blue-950/10 border border-blue-100 dark:border-blue-900/40 p-4 rounded-2xl text-[11px] text-blue-700 dark:text-blue-300 leading-relaxed space-y-2">
+              <div>
+                <p className="font-bold flex items-center gap-1.5 text-blue-800 dark:text-blue-200 text-xs">
+                  <Shield size={14} /> Donanımsal Akıllı Eşleştirme Sistemi
+                </p>
+                <p className="mt-0.5">
+                  Bir fiziksel cihazın herhangi bir tarayıcısına (örneğin Chrome) yetki verilmesi, o cihazdaki diğer tüm tarayıcıların (örneğin Firefox, Safari) donanımsal özellikleri sayesinde otomatik olarak güvenli şekilde tanınmasını sağlar. Tarayıcı farklarından ötürü ayrı ayrı onaylama yapmanıza gerek kalmaz.
+                </p>
+              </div>
+              <div className="border-t border-blue-100/40 dark:border-blue-900/20 pt-1.5">
+                <p className="font-bold flex items-center gap-1.5 text-blue-800 dark:text-blue-200 text-xs">
+                  <Globe size={13} /> IP Adresiyle Güvenli Kimlik Doğrulama
+                </p>
+                <p className="mt-0.5">
+                  Sistem, yetkilendirilmiş cihazların IP adreslerini de kaydeder. Cihazın çerezleri veya yerel depolama alanı tamamen temizlense dahi, yetkilendirilmiş bir IP adresine sahip tanıdık cihazlar güvenli bir şekilde otomatik olarak tespit edilip yetkilendirilir.
+                </p>
+              </div>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed italic">
               * Listede bulunmayan veya "Yetki Ver" butonu tıklanmamış mobil cihazlar, doğru yönetici şifresini girseler dahi paneli kullanamazlar.

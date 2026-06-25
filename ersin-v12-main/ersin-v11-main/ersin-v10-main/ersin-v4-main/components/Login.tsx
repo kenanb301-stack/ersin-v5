@@ -4,7 +4,7 @@ import { Package, ShieldCheck, Eye, ArrowRight, AlertTriangle, Lock, Cloud, Wifi
 import { User as UserType } from '../types';
 import { verifyCredentials } from '../utils/security';
 import { loadAppSettings, registerDevice } from '../services/firebase';
-import { getDeviceId, getDeviceName, getHardwareFingerprint } from '../utils/device';
+import { getDeviceId, getDeviceName, getHardwareFingerprint, getClientIp } from '../utils/device';
 
 interface LoginProps {
   onLogin: (user: UserType, remember: boolean) => void;
@@ -82,7 +82,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         // Proactively register/update device info so it appears in the admin panel
         if (cloudConfig) {
-            await registerDevice(deviceId, getDeviceName(), getHardwareFingerprint());
+            const ip = await getClientIp();
+            await registerDevice(deviceId, getDeviceName(), getHardwareFingerprint(), ip);
         }
 
         // Verify with device and cloud support

@@ -1,5 +1,5 @@
 
-import { getDeviceId, getHardwareFingerprint } from './device';
+import { getDeviceId, getHardwareFingerprint, getClientIp } from './device';
 import { loadAppSettings, checkDeviceAuthorization } from '../services/firebase';
 
 /**
@@ -63,7 +63,8 @@ export const verifyCredentials = async (username: string, password: string, clou
         if (cloudConfig) {
             const deviceId = getDeviceId();
             const fp = getHardwareFingerprint();
-            const authCheck = await checkDeviceAuthorization(deviceId, fp);
+            const ip = await getClientIp();
+            const authCheck = await checkDeviceAuthorization(deviceId, fp, ip);
             
             if (authCheck.success && !authCheck.authorized) {
                 return { success: false, message: "Bu cihaz yetkilendirilmemiş. Lütfen yönetici ile iletişime geçin." };

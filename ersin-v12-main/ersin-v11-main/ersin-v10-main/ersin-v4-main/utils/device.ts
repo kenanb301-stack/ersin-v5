@@ -123,3 +123,38 @@ export const getDeviceName = (): string => {
     return finalName.replace(/\s+/g, ' ').trim();
 };
 
+let cachedIp: string | null = null;
+
+export const getClientIp = async (): Promise<string> => {
+    if (cachedIp) return cachedIp;
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const response = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
+        clearTimeout(timeoutId);
+        const data = await response.json();
+        if (data.ip) {
+            cachedIp = data.ip;
+            return data.ip;
+        }
+    } catch (e) {
+        console.warn("Primary IP fetch failed, trying fallback:", e);
+    }
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const response = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+        clearTimeout(timeoutId);
+        const data = await response.json();
+        if (data.ip) {
+            cachedIp = data.ip;
+            return data.ip;
+        }
+    } catch (e) {
+        console.warn("Fallback IP fetch failed:", e);
+    }
+
+    return "Bilinmeyen IP";
+};
+
