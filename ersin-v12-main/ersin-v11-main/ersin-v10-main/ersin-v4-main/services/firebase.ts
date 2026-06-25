@@ -7,7 +7,9 @@ import {
   getDocs, 
   collection, 
   deleteDoc, 
-  writeBatch 
+  writeBatch,
+  query,
+  where
 } from 'firebase/firestore';
 import { Product, Transaction, Order } from '../types';
 import firebaseConfig from '../firebase-applet-config.json';
@@ -155,19 +157,46 @@ export const saveAppSetting = async (settingKey: string, settingValue: string) =
     }
 };
 
-export const checkDeviceAuthorization = async (deviceId: string) => {
+export const checkDeviceAuthorization = async (deviceId: string, hardwareFingerprint?: string) => {
     try {
+        // 1. First, check if there is an authorized device with the exact deviceId
         const docSnap = await getDoc(doc(db, 'authorized_devices', deviceId));
+        if (docSnap.exists() && docSnap.data().is_authorized) {
+            return { success: true, authorized: true };
+        }
+
+        // 2. If not found or not authorized via deviceId, check if any device with the same hardwareFingerprint is authorized!
+        if (hardwareFingerprint) {
+            const q = query(
+                collection(db, 'authorized_devices'), 
+                where('hardware_fingerprint', '==', hardwareFingerprint),
+                where('is_authorized', '==', true)
+            );
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                // Yes! We found a registered device with the same physical hardware fingerprint that is authorized!
+                // Let's adopt that authorized device's ID so that this browser is treated as that device!
+                const matchedDoc = querySnapshot.docs[0];
+                const matchedDeviceId = matchedDoc.data().device_id;
+                
+                // Save this matched authorized deviceId to local storage so future calls use it directly
+                localStorage.setItem('depopro_device_id', matchedDeviceId);
+                
+                return { success: true, authorized: true, adoptedDeviceId: matchedDeviceId };
+            }
+        }
+
         if (!docSnap.exists()) {
             return { success: true, authorized: false, notFound: true };
         }
         return { success: true, authorized: docSnap.data().is_authorized || false };
     } catch (e: any) { 
+        console.error("checkDeviceAuthorization error:", e);
         return { success: false, authorized: false }; 
     }
 };
 
-export const registerDevice = async (deviceId: string, deviceName: string) => {
+export const registerDevice = async (deviceId: string, deviceName: string, hardwareFingerprint?: string) => {
     try {
         const docRef = doc(db, 'authorized_devices', deviceId);
         const docSnap = await getDoc(docRef);
@@ -175,12 +204,14 @@ export const registerDevice = async (deviceId: string, deviceName: string) => {
         if (docSnap.exists()) {
             await setDoc(docRef, { 
                 device_name: deviceName,
+                hardware_fingerprint: hardwareFingerprint || "",
                 updated_at: new Date().toISOString()
             }, { merge: true });
         } else {
             await setDoc(docRef, { 
                 device_id: deviceId, 
                 device_name: deviceName,
+                hardware_fingerprint: hardwareFingerprint || "",
                 is_authorized: false,
                 updated_at: new Date().toISOString()
             });
